@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <!-- Niklas Buschmann 2015 MIT <http://github.com/niklasbuschmann> -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="utf-8">
+    
+    <meta name="description" content="Tech and Stuff">
+    <title>Stuff 'n Things</title>
+    <link rel="canonical" href="http://hassox.github.io/index.html">
+    <link href="/main.css" rel="stylesheet" type="text/css">
+    <link href='//fonts.googleapis.com/css?family=Source+Sans+Pro:200,300,400,600,700,200italic,300italic,400italic,600italic,700italic' rel='stylesheet' type='text/css'>
+    <link href='//fonts.googleapis.com/css?family=Gentium+Basic:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
+    <link href='//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css' rel='stylesheet' type='text/css'>
+    <link rel="alternate" type="application/rss+xml" title="Stuff 'n Things &raquo; Feed" href="/feed.xml">
+    
+    
+  </head>
+  <body>
+    <header>
+      <h1><a href="/">Stuff 'n Things</a></h1>
+      <nav>
+        <ul>
+          <li><a href="/">Home</a></li><li><a href="/archive.html">Archive</a></li>
+        </ul>
+      </nav>
+    </header>
+    
+    
+    
+    <article>
+      <header>
+        <h2><a href="/elixir/2015/05/25/elixir-sudoku.html">Elixir Sudoku</a></h2>
+        <p><time datetime="2015-05-25T00:00:00-07:00">May 25, 2015</time> • elixir</p>
+      </header>
+      <div>
+<p>Last week I was reading my friends blog <a href="http://www.robotdan.com/">Robot Dan</a>
+and came across his <a href="http://www.robotdan.com/posts/22">sudoku post</a>.</p>
+
+<p>I’ve never written a sudoku solver before, naturally I thought of writing it in
+Elixir. I spent the evening playing around trying to come up with something that
+was at least somewhat idomatic.</p>
+
+<p>My first solution was a very similar implementation to what Dan had on his site.
+It works ok. I found a harder board that made it take a bit longer.
+Interestingly I found that the memory usage was flat for easy or hard. I’m
+guessing that I got the tail recursion correct.</p>
+
+<div class="highlight"><pre><code class="language-elixir" data-lang="elixir"><span class="kd">defmodule</span> <span class="nc">Sudoku</span> <span class="k">do</span>
+  <span class="kd">def</span> <span class="n">easy</span><span class="p">,</span> <span class="ss">do</span><span class="p">:</span> <span class="nc">Sudoku</span><span class="p">.</span><span class="n">solve</span><span class="p">(</span><span class="nc">Sudoku</span><span class="p">.</span><span class="n">easy_board</span><span class="p">)</span>
+
+  <span class="c1"># Just using 0 rather than nil for display purposes</span>
+  <span class="kd">def</span> <span class="n">easy_board</span> <span class="k">do</span>
+    <span class="p">[</span>
+      <span class="p">[</span><span class="mi">8</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">5</span><span class="p">],</span>
+      <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span><span class="mi">8</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span>
+      <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span> <span class="mi">9</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span>
+
+      <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">7</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span>
+      <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span>
+      <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span>
+
+      <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">8</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span>
+      <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">9</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span>
+      <span class="p">[</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">7</span><span class="p">]</span>
+    <span class="p">]</span>
+  <span class="k">end</span>
+
+  <span class="kd">def</span> <span class="n">solve</span><span class="p">(</span><span class="n">board</span><span class="p">)</span> <span class="k">do</span>
+    <span class="k">case</span> <span class="n">solve</span><span class="p">(</span><span class="n">board</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="k">do</span>
+      <span class="p">{</span> <span class="ss">:ok</span><span class="p">,</span> <span class="n">solved_board</span> <span class="p">}</span> <span class="p">-&gt;</span> <span class="n">print_board</span><span class="p">(</span><span class="n">solved_board</span><span class="p">)</span>
+      <span class="p">{</span> <span class="ss">:error</span> <span class="p">}</span> <span class="p">-&gt;</span> <span class="nc">IO</span><span class="p">.</span><span class="n">puts</span><span class="p">(</span><span class="s2">&quot;Board is not valid&quot;</span><span class="p">)</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+
+  <span class="kd">def</span> <span class="n">solve</span><span class="p">(</span><span class="n">board</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="bp">_</span><span class="p">)</span> <span class="ow">when</span> <span class="n">x</span><span class="o">==</span><span class="mi">9</span><span class="p">,</span> <span class="ss">do</span><span class="p">:</span> <span class="p">{</span> <span class="ss">:ok</span><span class="p">,</span> <span class="n">board</span> <span class="p">}</span>
+  <span class="kd">def</span> <span class="n">solve</span><span class="p">(</span><span class="n">board</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="ow">when</span> <span class="n">y</span><span class="o">==</span><span class="mi">9</span><span class="p">,</span> <span class="ss">do</span><span class="p">:</span> <span class="n">solve</span><span class="p">(</span><span class="n">board</span><span class="p">,</span> <span class="n">x</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+  <span class="kd">def</span> <span class="n">solve</span><span class="p">(</span><span class="n">board</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="k">do</span>
+    <span class="k">if</span> <span class="nc">Enum</span><span class="p">.</span><span class="n">at</span><span class="p">(</span><span class="nc">Enum</span><span class="p">.</span><span class="n">at</span><span class="p">(</span><span class="n">board</span><span class="p">,</span> <span class="n">x</span><span class="p">),</span> <span class="n">y</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">do</span>
+      <span class="n">solve</span><span class="p">(</span><span class="n">board</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">possible_values</span><span class="p">(</span><span class="n">board</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">))</span>
+    <span class="k">else</span>
+      <span class="n">solve</span><span class="p">(</span><span class="n">board</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+
+  <span class="kd">def</span> <span class="n">solve</span><span class="p">(</span><span class="bp">_</span><span class="p">,</span> <span class="bp">_</span><span class="p">,</span> <span class="bp">_</span><span class="p">,</span> <span class="p">[]),</span> <span class="ss">do</span><span class="p">:</span> <span class="p">{</span> <span class="ss">:error</span> <span class="p">}</span>
+
+  <span class="kd">def</span> <span class="n">solve</span><span class="p">(</span><span class="n">board</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="p">[</span><span class="n">head</span> <span class="p">|</span> <span class="n">tail</span><span class="p">])</span> <span class="k">do</span>
+    <span class="n">new_row</span> <span class="p">=</span> <span class="nc">Enum</span><span class="p">.</span><span class="n">at</span><span class="p">(</span><span class="n">board</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="o">|&gt;</span> <span class="nc">List</span><span class="p">.</span><span class="n">replace_at</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">head</span><span class="p">)</span>
+    <span class="n">new_board</span> <span class="p">=</span> <span class="nc">List</span><span class="p">.</span><span class="n">replace_at</span><span class="p">(</span><span class="n">board</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">new_row</span><span class="p">)</span>
+
+    <span class="k">case</span> <span class="n">solve</span><span class="p">(</span><span class="n">new_board</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="k">do</span>
+      <span class="p">{</span> <span class="ss">:ok</span><span class="p">,</span> <span class="n">solved_board</span> <span class="p">}</span> <span class="p">-&gt;</span> <span class="p">{</span> <span class="ss">:ok</span><span class="p">,</span> <span class="n">solved_board</span> <span class="p">}</span>
+      <span class="p">{</span> <span class="ss">:error</span> <span class="p">}</span> <span class="p">-&gt;</span> <span class="n">solve</span><span class="p">(</span><span class="n">board</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">tail</span><span class="p">)</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+
+  <span class="kd">def</span> <span class="n">possible_values</span><span class="p">(</span><span class="n">board</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="k">do</span>
+    <span class="n">vals</span> <span class="p">=</span> <span class="p">[</span><span class="n">values_in_row</span><span class="p">(</span><span class="n">board</span><span class="p">,</span> <span class="n">x</span><span class="p">),</span> <span class="n">values_in_column</span><span class="p">(</span><span class="n">board</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="n">values_in_cell</span><span class="p">(</span><span class="n">board</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)]</span>
+            <span class="o">|&gt;</span> <span class="nc">List</span><span class="p">.</span><span class="n">flatten</span>
+            <span class="o">|&gt;</span> <span class="nc">Enum</span><span class="p">.</span><span class="n">uniq</span>
+
+    <span class="p">(</span><span class="mi">1</span><span class="p">..</span><span class="mi">9</span><span class="p">)</span> <span class="o">|&gt;</span> <span class="nc">Enum</span><span class="p">.</span><span class="n">reject</span><span class="p">(</span><span class="o">&amp;</span><span class="p">(</span><span class="nc">Enum</span><span class="p">.</span><span class="n">member?</span><span class="p">(</span><span class="n">vals</span><span class="p">,</span> <span class="ni">&amp;1</span><span class="p">)))</span>
+  <span class="k">end</span>
+
+  <span class="kd">def</span> <span class="n">values_in_row</span><span class="p">(</span><span class="n">board</span><span class="p">,</span> <span class="n">x</span><span class="p">),</span> <span class="ss">do</span><span class="p">:</span> <span class="nc">Enum</span><span class="p">.</span><span class="n">at</span><span class="p">(</span><span class="n">board</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+  <span class="kd">def</span> <span class="n">values_in_column</span><span class="p">(</span><span class="n">board</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="ss">do</span><span class="p">:</span> <span class="nc">Enum</span><span class="p">.</span><span class="n">map</span><span class="p">(</span><span class="n">board</span><span class="p">,</span> <span class="o">&amp;</span><span class="p">(</span><span class="nc">Enum</span><span class="p">.</span><span class="n">at</span><span class="p">(</span><span class="ni">&amp;1</span><span class="p">,</span> <span class="n">y</span><span class="p">)))</span>
+
+  <span class="kd">def</span> <span class="n">values_in_cell</span><span class="p">(</span><span class="n">board</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="k">do</span>
+    <span class="n">start_x</span> <span class="p">=</span> <span class="n">div</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="o">*</span> <span class="mi">3</span>
+    <span class="n">start_y</span> <span class="p">=</span> <span class="n">div</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="o">*</span> <span class="mi">3</span>
+    <span class="nc">Enum</span><span class="p">.</span><span class="n">slice</span><span class="p">(</span><span class="n">board</span><span class="p">,</span> <span class="n">start_x</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="o">|&gt;</span> <span class="nc">Enum</span><span class="p">.</span><span class="n">map</span><span class="p">(</span><span class="o">&amp;</span><span class="p">(</span><span class="nc">Enum</span><span class="p">.</span><span class="n">slice</span><span class="p">(</span><span class="ni">&amp;1</span><span class="p">,</span> <span class="n">start_y</span><span class="p">,</span> <span class="mi">3</span><span class="p">)))</span> <span class="o">|&gt;</span> <span class="nc">List</span><span class="p">.</span><span class="n">flatten</span>
+  <span class="k">end</span>
+
+  <span class="kd">def</span> <span class="n">print_board</span><span class="p">([]),</span> <span class="ss">do</span><span class="p">:</span> <span class="no">nil</span>
+  <span class="kd">def</span> <span class="n">print_board</span><span class="p">([</span><span class="n">row</span> <span class="p">|</span> <span class="n">rest</span><span class="p">])</span> <span class="k">do</span>
+    <span class="nc">IO</span><span class="p">.</span><span class="n">inspect</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+    <span class="n">print_board</span><span class="p">(</span><span class="n">rest</span><span class="p">)</span>
+  <span class="k">end</span>
+<span class="k">end</span></code></pre></div>
+
+<p>I wanted to do something a little more Elixiry though. When the recursive
+function selects all possible values for a cell, and then recurses, that’s the point that I thought
+I might be able to shoot out a bunch of processes and do all the calculations in
+parallel. A branching recursive parallel implementation. Sounded fun!</p>
+
+<p>I implemented it using Elixir Tasks and process dictionaries.</p>
+
+<p>Unfortunately I went wrong somewhere. I ran out of processes, or simply timed
+out. I even increased the number of processes to 5M without helping. It maxed
+out in RAM, CPU and times out.</p>
+
+<p>I think I’ll stick with the recursive solution, but I’ve included the other
+below.</p>
+
+<div class="highlight"><pre><code class="language-elixir" data-lang="elixir"><span class="c1"># The only board that works with this one on my machine is the easy.</span>
+<span class="c1"># The others simply timeout.</span>
+<span class="kd">defmodule</span> <span class="nc">PSudoku</span> <span class="k">do</span>
+  <span class="kd">def</span> <span class="n">easy</span><span class="p">,</span> <span class="ss">do</span><span class="p">:</span> <span class="nc">PSudoku</span><span class="p">.</span><span class="n">solve</span><span class="p">(</span><span class="nc">PSudoku</span><span class="p">.</span><span class="n">easy_board</span><span class="p">)</span>
+
+  <span class="c1"># Just using 0 rather than nil for display purposes</span>
+  <span class="kd">def</span> <span class="n">easy_board</span> <span class="k">do</span>
+    <span class="p">[</span>
+      <span class="p">[</span><span class="mi">8</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">5</span><span class="p">],</span>
+      <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span><span class="mi">8</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span>
+      <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span> <span class="mi">9</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span>
+
+      <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">7</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span>
+      <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span>
+      <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span>
+
+      <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">8</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span>
+      <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">9</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span>
+      <span class="p">[</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">7</span><span class="p">]</span>
+    <span class="p">]</span>
+  <span class="k">end</span>
+
+  <span class="kd">def</span> <span class="n">solve</span><span class="p">(</span><span class="n">board</span><span class="p">)</span> <span class="k">do</span>
+    <span class="k">case</span> <span class="n">solve</span><span class="p">(</span><span class="n">board</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="k">do</span>
+      <span class="p">{</span> <span class="ss">:ok</span><span class="p">,</span> <span class="n">solved_board</span> <span class="p">}</span> <span class="p">-&gt;</span> <span class="n">print_board</span><span class="p">(</span><span class="n">solved_board</span><span class="p">)</span>
+      <span class="p">{</span> <span class="ss">:error</span> <span class="p">}</span> <span class="p">-&gt;</span> <span class="nc">IO</span><span class="p">.</span><span class="n">puts</span><span class="p">(</span><span class="s2">&quot;ERRRO&quot;</span><span class="p">)</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+
+  <span class="kd">def</span> <span class="n">solve</span><span class="p">(</span><span class="n">board</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="bp">_</span><span class="p">)</span> <span class="ow">when</span> <span class="n">x</span><span class="o">==</span><span class="mi">9</span><span class="p">,</span> <span class="ss">do</span><span class="p">:</span> <span class="p">{</span> <span class="ss">:ok</span><span class="p">,</span> <span class="n">board</span> <span class="p">}</span>
+  <span class="kd">def</span> <span class="n">solve</span><span class="p">(</span><span class="n">board</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="ow">when</span> <span class="n">y</span><span class="o">==</span><span class="mi">9</span><span class="p">,</span> <span class="ss">do</span><span class="p">:</span> <span class="n">solve</span><span class="p">(</span><span class="n">board</span><span class="p">,</span> <span class="n">x</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+  <span class="kd">def</span> <span class="n">solve</span><span class="p">(</span><span class="n">board</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="k">do</span>
+    <span class="k">if</span> <span class="nc">Enum</span><span class="p">.</span><span class="n">at</span><span class="p">(</span><span class="nc">Enum</span><span class="p">.</span><span class="n">at</span><span class="p">(</span><span class="n">board</span><span class="p">,</span> <span class="n">x</span><span class="p">),</span> <span class="n">y</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">do</span>
+      <span class="n">vals</span> <span class="p">=</span> <span class="n">possible_values</span><span class="p">(</span><span class="n">board</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">length</span><span class="p">(</span><span class="n">vals</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">do</span>
+        <span class="n">result</span> <span class="p">=</span> <span class="nc">Enum</span><span class="p">.</span><span class="n">map</span><span class="p">(</span><span class="n">vals</span><span class="p">,</span> <span class="k">fn</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="p">-&gt;</span> <span class="nc">Task</span><span class="p">.</span><span class="n">async</span><span class="p">(</span><span class="k">fn</span> <span class="p">-&gt;</span> <span class="n">solve</span><span class="p">(</span><span class="n">board</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="k">end</span><span class="p">)</span> <span class="k">end</span><span class="p">)</span>
+        <span class="o">|&gt;</span> <span class="nc">Enum</span><span class="p">.</span><span class="n">map</span><span class="p">(</span><span class="o">&amp;</span><span class="p">(</span><span class="nc">Task</span><span class="p">.</span><span class="n">await</span><span class="p">(</span><span class="ni">&amp;1</span><span class="p">,</span> <span class="mi">30_000</span><span class="p">)))</span>
+        <span class="o">|&gt;</span> <span class="nc">Enum</span><span class="p">.</span><span class="n">find</span><span class="p">({</span> <span class="ss">:error</span> <span class="p">},</span> <span class="o">&amp;</span><span class="n">match?</span><span class="p">({</span> <span class="ss">:ok</span><span class="p">,</span> <span class="bp">_</span> <span class="p">},</span> <span class="ni">&amp;1</span><span class="p">))</span>
+      <span class="k">else</span>
+        <span class="p">{</span> <span class="ss">:error</span> <span class="p">}</span>
+      <span class="k">end</span>
+    <span class="k">else</span>
+      <span class="n">solve</span><span class="p">(</span><span class="n">board</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+
+  <span class="kd">def</span> <span class="n">solve</span><span class="p">(</span><span class="n">board</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="ow">when</span> <span class="n">is_integer</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">do</span>
+    <span class="n">new_row</span> <span class="p">=</span> <span class="nc">Enum</span><span class="p">.</span><span class="n">at</span><span class="p">(</span><span class="n">board</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="o">|&gt;</span> <span class="nc">List</span><span class="p">.</span><span class="n">replace_at</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+    <span class="n">new_board</span> <span class="p">=</span> <span class="nc">List</span><span class="p">.</span><span class="n">replace_at</span><span class="p">(</span><span class="n">board</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">new_row</span><span class="p">)</span>
+    <span class="n">solve</span><span class="p">(</span><span class="n">new_board</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+  <span class="k">end</span>
+
+  <span class="kd">def</span> <span class="n">possible_values</span><span class="p">(</span><span class="n">board</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="k">do</span>
+    <span class="n">vals</span> <span class="p">=</span> <span class="p">[</span><span class="n">values_in_row</span><span class="p">(</span><span class="n">board</span><span class="p">,</span> <span class="n">x</span><span class="p">),</span> <span class="n">values_in_column</span><span class="p">(</span><span class="n">board</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="n">values_in_cell</span><span class="p">(</span><span class="n">board</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)]</span>
+            <span class="o">|&gt;</span> <span class="nc">List</span><span class="p">.</span><span class="n">flatten</span>
+            <span class="o">|&gt;</span> <span class="nc">Enum</span><span class="p">.</span><span class="n">uniq</span>
+
+    <span class="p">(</span><span class="mi">1</span><span class="p">..</span><span class="mi">9</span><span class="p">)</span> <span class="o">|&gt;</span> <span class="nc">Enum</span><span class="p">.</span><span class="n">reject</span><span class="p">(</span><span class="o">&amp;</span><span class="p">(</span><span class="nc">Enum</span><span class="p">.</span><span class="n">member?</span><span class="p">(</span><span class="n">vals</span><span class="p">,</span> <span class="ni">&amp;1</span><span class="p">)))</span>
+  <span class="k">end</span>
+
+  <span class="kd">def</span> <span class="n">values_in_row</span><span class="p">(</span><span class="n">board</span><span class="p">,</span> <span class="n">x</span><span class="p">),</span> <span class="ss">do</span><span class="p">:</span> <span class="nc">Enum</span><span class="p">.</span><span class="n">at</span><span class="p">(</span><span class="n">board</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+  <span class="kd">def</span> <span class="n">values_in_column</span><span class="p">(</span><span class="n">board</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="ss">do</span><span class="p">:</span> <span class="nc">Enum</span><span class="p">.</span><span class="n">map</span><span class="p">(</span><span class="n">board</span><span class="p">,</span> <span class="o">&amp;</span><span class="p">(</span><span class="nc">Enum</span><span class="p">.</span><span class="n">at</span><span class="p">(</span><span class="ni">&amp;1</span><span class="p">,</span> <span class="n">y</span><span class="p">)))</span>
+
+  <span class="kd">def</span> <span class="n">values_in_cell</span><span class="p">(</span><span class="n">board</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="k">do</span>
+    <span class="n">start_x</span> <span class="p">=</span> <span class="n">div</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="o">*</span> <span class="mi">3</span>
+    <span class="n">start_y</span> <span class="p">=</span> <span class="n">div</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="o">*</span> <span class="mi">3</span>
+    <span class="nc">Enum</span><span class="p">.</span><span class="n">slice</span><span class="p">(</span><span class="n">board</span><span class="p">,</span> <span class="n">start_x</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="o">|&gt;</span> <span class="nc">Enum</span><span class="p">.</span><span class="n">map</span><span class="p">(</span><span class="o">&amp;</span><span class="p">(</span><span class="nc">Enum</span><span class="p">.</span><span class="n">slice</span><span class="p">(</span><span class="ni">&amp;1</span><span class="p">,</span> <span class="n">start_y</span><span class="p">,</span> <span class="mi">3</span><span class="p">)))</span> <span class="o">|&gt;</span> <span class="nc">List</span><span class="p">.</span><span class="n">flatten</span>
+  <span class="k">end</span>
+
+  <span class="kd">def</span> <span class="n">print_board</span><span class="p">([]),</span> <span class="ss">do</span><span class="p">:</span> <span class="no">nil</span>
+  <span class="kd">def</span> <span class="n">print_board</span><span class="p">([</span><span class="n">row</span> <span class="p">|</span> <span class="n">rest</span><span class="p">])</span> <span class="k">do</span>
+    <span class="nc">IO</span><span class="p">.</span><span class="n">inspect</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+    <span class="n">print_board</span><span class="p">(</span><span class="n">rest</span><span class="p">)</span>
+  <span class="k">end</span>
+<span class="k">end</span></code></pre></div>
+
+
+      </div>
+      <footer>
+        <p><a href="/elixir/2015/05/25/elixir-sudoku.html">read more &raquo;</a></p>
+      </footer>
+    </article>
+    
+
+    <footer>
+      <span><a href="http://hassox.github.io">Daniel Neighman</a></span>
+      <span><a href="https://github.com/hassox/"><i class="fa fa-github-square"></i></a><a href="https://twitter.com/hassox/"><i class="fa fa-twitter-square"></i></a></span>
+      <span>&copy; 2015</span>
+    </footer>
+  </body>
+</html>
