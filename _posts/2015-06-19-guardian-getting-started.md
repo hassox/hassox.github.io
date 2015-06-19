@@ -94,7 +94,7 @@ A couple of things to note.
 You'll need the serializer so your app can serialize into and out of the token.
 Don't worry, this is Elixir, they're easy.
 
-{% highlight elixir }
+{% highlight elixir %}
 defmodule PhoenixGuardian.GuardianSerializer do
   @behaviour Guardian.Serializer
 
@@ -107,7 +107,7 @@ defmodule PhoenixGuardian.GuardianSerializer do
   def from_token("User:" <> id), do: { :ok, Repo.get(User, String.to_integer(id)) }
   def from_token(_), do: { :error, "Unknown resource type" }
 end
-{% endhighlight }
+{% endhighlight %}
 
 Need to support different model types? Just add a pattern match in your serializer!
 
@@ -125,7 +125,7 @@ There are three phases to Guardians plug integration.
 2. Loading the resource
 3. Requireing a verified token
 
-{% highlight elixir }
+{% highlight elixir %}
 pipeline :browser_session do
   plug Guardian.Plug.VerifySession # looks in the session for the token
   plug Guardian.Plug.LoadResource
@@ -136,7 +136,7 @@ pipeline :api do
   plug Guardian.Plug.VerifyAuthorization # Looks in the Authorization header for the token
   plug Guardian.Plug.LoadResource
 end
-{% endhighlight }
+{% endhighlight %}
 
 These two pipelines will verify the token (if present) and load the resource if
 there was a verified token found. If the token isn't there or is invalid,
@@ -145,7 +145,7 @@ nothing bad happens, the load resource won't do anything.
 When we want to ensure that someone is authenticated we can ensure they have a
 session (an authentication session rather than a plug session).
 
-{% highlight elixir }
+{% highlight elixir %}
 
 defmodule PhoenixGuardian.UserController do
   use PhoenixGuardian.Web, :controller
@@ -156,7 +156,7 @@ defmodule PhoenixGuardian.UserController do
 
   # ....
 end
-{% endhighlight }
+{% endhighlight %}
 
 Ok, so there's some stuff going on there. Lets break it down.
 
@@ -175,7 +175,7 @@ for, hence the `when not action` stuff.
 Ok so, this is all good and well. We've configured it, setup a serializer, and
 created our pipelines, how to sign in?
 
-{% highlight elixir }
+{% highlight elixir %}
 def create(conn, %{"user" => user_params}) do
   changeset = User.create_changeset(%User{}, user_params)
 
@@ -190,7 +190,7 @@ def create(conn, %{"user" => user_params}) do
     render(conn, "new.html", changeset: changeset)
   end
 end
-{% endhighlight }
+{% endhighlight %}
 
 See that tiny line in the middle there. `Guardian.Plug.sign_in(user, :csrf)`.
 That's it. Once you do that, your token is generated, pumped into the connection
@@ -205,10 +205,10 @@ works on my page type of auth.
 
 ### Logout
 
-{% highlight elixir }
+{% highlight elixir %}
 Guardian.Plug.logout(conn)
 |> redirect_or_something
-{% endhighlight }
+{% endhighlight %}
 
 ### Channels
 
@@ -216,19 +216,19 @@ Ok so, I did say you could use this for channels right. Here it is:
 
 `some_html.html`
 
-{% hightlight eex }
+{% highlight erb %}
 <meta name='csrf_token' content='<%= Plug.CSRFProtection.get_csrf_token %>'>
 <%= if Guardian.Plug.current_token(@conn) do %>
   <meta name='guardian_token' content="<%= Guardian.Plug.current_token(@conn) %>">
 <% end %>
-{% endhighlight }
+{% endhighlight %}
 
 Since we generated the token as `:csrf` we need to pass in the csrf token, so we
 dump them on the page as a way to pass it to the javascript client.
 
 `some_javascript.js`
 
-{% highligh javascript }
+{% highlight javascript %}
 let socket = new Socket("/ws");
 socket.connect();
 
@@ -236,11 +236,11 @@ let guardianToken = jQuery('meta[name="guardian_token"]').attr('content');
 let csrfToken = jQuery('meta[name="csrf_token"]').attr('content');
 
 let chan = socket.chan("pings", { guardian_token: guardianToken, csrf_token: csrfToken });
-{% endhighlight }
+{% endhighlight %}
 
 `phoenix_guardian/user_channel.ex`
 
-{% highlight elixir }
+{% highlight elixir %}
 defmodule PhoenixGuardian.UsersChannel do
   use Phoenix.Channel
   use Guardian.Channel
@@ -256,7 +256,7 @@ defmodule PhoenixGuardian.UsersChannel do
 
   def handle_guardian_auth_failure(reason), do: { :error, %{ error: reason } }
 end
-{% endhighlight }
+{% endhighlight %}
 
 When Guardian finds a valid token, it extracts the claims and the resource, and
 calls `join` with them in the map. The keys to pattern match on for

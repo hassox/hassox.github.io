@@ -30,6 +30,266 @@
     
     <article>
       <header>
+        <h2><a href="/elixir/guardian/2015/06/19/guardian-getting-started.html">Getting started with Guardian</a></h2>
+        <p><time datetime="2015-06-19T00:00:00-07:00">Jun 19, 2015</time> • elixir and guardian</p>
+      </header>
+      <div>
+<p>For some reason, the first thing I look for when I’m building an application is
+authentication. For me things are interesting when there’s something going on on
+my apps, and that usually means letting people login.</p>
+
+<p>I’ve been enjoying Elixir and so far there hasn’t been anything for
+authentication that suited what I wanted. Using Phoenix is so nice, and make
+things that are difficult or nearly impossible with other frameworks easy
+(looking at you Channels).</p>
+
+<p>One of the things that I really like about Elixir/Eralng, is that making all
+elements of you application live in your application is (mostly) reasonable. Web
+requests, web-sockets, mail even raw TCP sockets are all on the table. Time for
+something new in auth.</p>
+
+<p>Guardian is based on <a href="http://self-issued.info/docs/draft-ietf-oauth-json-web-token.html">JWT</a>. They are the self contained package of information that contains all the information you need for your authentication needs. For those unfamiliar I suggest having a look at the <a href="http://self-issued.info/docs/draft-ietf-oauth-json-web-token.html#rfc.section.4.1">Registered Claim Names</a>. These little packets of goodness can be used in a session, authorization header, passed in body params - they can even be used on raw sockets.</p>
+
+<h3 id="lets-look-at-what-guardian-is-not-for-the-moment">Lets look at what Guardian is not (for the moment).</h3>
+
+<ul>
+  <li>It does not have any requirements around your model</li>
+  <li>It does not try to implement (or assist you to implement) checking login/emails</li>
+  <li>It does not try to do oAuth</li>
+</ul>
+
+<p>Not to say that strategies won’t come sometime in the future, but for the moment
+I’m not convinced that they’re actually within scope of the library. Guardian
+strives to provide mechanisms for seamless authentication across different
+access patterns, devices and S2S communications. How you determine that a user
+is who they say they are is, at the moment beyond the scope.</p>
+
+<h3 id="so-whats-it-good-for">So what’s it good for?</h3>
+
+<p>Guardian provides a mechanism for verifying previously asserted claims that
+someone is who they say they are. Do this for browser based, api, channel,
+socket communications or just because you can. The initial login is trivial,
+it’s the other parts of the system where things get interesting.</p>
+
+<p>Since Guardian is based on JWT, you can share the tokens with other systems that
+you trust. The same shared secret will allow another system to verify the token
+which is great for S2S systems. Your Elixir application can mint the credentials
+(JWT) and other systems can verify them without a call to your Elixir
+application, or they can mint credentials and have them used by your Elixir app.
+Screw language differences.</p>
+
+<h2 id="ok-so-lets-see-it-then">Ok so lets see it then</h2>
+
+<p>I’m going to pull the code from my demo application: <a href="https://github.com/hassox/phoenix_guardian">PhoenixGuardian</a>.</p>
+
+<h4 id="configuration">Configuration</h4>
+
+<p>Add Guardian to your mix.deps:</p>
+
+<div class="highlight"><pre><code class="language-elixir" data-lang="elixir"><span class="kd">defp</span> <span class="n">deps</span> <span class="k">do</span>
+  <span class="p">[</span>
+    <span class="c1"># ...</span>
+    <span class="p">{</span><span class="ss">:guardian</span><span class="p">,</span> <span class="s2">&quot;~&gt;0.1.0&quot;</span><span class="p">},</span>
+    <span class="c1"># ...</span>
+  <span class="p">]</span>
+<span class="k">end</span></code></pre></div>
+
+<p>Guardian relies on <a href="https://github.com/bryanjos/joken">Joken</a> for it’s JWTs. Guardian will bring it in, but you’ll
+need to verify it.</p>
+
+<div class="highlight"><pre><code class="language-elixir" data-lang="elixir"><span class="n">config</span> <span class="ss">:joken</span><span class="p">,</span>
+       <span class="ss">secret_key</span><span class="p">:</span> <span class="s2">&quot;lksjdflksjfowieruwoieruowier&quot;</span><span class="p">,</span>
+       <span class="ss">json_module</span><span class="p">:</span> <span class="nc">Guardian.JWT</span>
+
+<span class="n">config</span> <span class="ss">:guardian</span><span class="p">,</span> <span class="nc">Guardian</span><span class="p">,</span>
+      <span class="ss">issuer</span><span class="p">:</span> <span class="s2">&quot;MyApp&quot;</span><span class="p">,</span>
+      <span class="ss">ttl</span><span class="p">:</span> <span class="p">{</span> <span class="mi">30</span><span class="p">,</span> <span class="ss">:days</span> <span class="p">},</span>
+      <span class="ss">verify_issuer</span><span class="p">:</span> <span class="no">true</span><span class="p">,</span>
+      <span class="ss">secret_key</span><span class="p">:</span> <span class="s2">&quot;lksdjowiurowieurlkjsdlwwer&quot;</span><span class="p">,</span>
+      <span class="ss">serializer</span><span class="p">:</span> <span class="nc">PhoenixGuardian.GuardianSerializer</span></code></pre></div>
+
+<p>A couple of things to note.</p>
+
+<ul>
+  <li>Jokens <code>json_module</code> should be set to <code>Guardian.JWT</code></li>
+  <li><code>verify_issuer</code> Set this to true if you want to only accept tokens generated by yourself (even if another app has your secret)</li>
+  <li>Please have different <code>secret_key</code>s per environment!</li>
+</ul>
+
+<h4 id="guardianserializer">Guardian.Serializer</h4>
+
+<p>You’ll need the serializer so your app can serialize into and out of the token.
+Don’t worry, this is Elixir, they’re easy.</p>
+
+<div class="highlight"><pre><code class="language-elixir" data-lang="elixir"><span class="kd">defmodule</span> <span class="nc">PhoenixGuardian.GuardianSerializer</span> <span class="k">do</span>
+  <span class="na">@behaviour</span> <span class="nc">Guardian.Serializer</span>
+
+  <span class="kn">alias</span> <span class="nc">PhoenixGuardian.Repo</span>
+  <span class="kn">alias</span> <span class="nc">PhoenixGuardian.User</span>
+
+  <span class="kd">def</span> <span class="n">for_token</span><span class="p">(</span><span class="n">user</span> <span class="p">=</span> <span class="p">%</span><span class="nc">User</span><span class="p">{}),</span> <span class="ss">do</span><span class="p">:</span> <span class="p">{</span> <span class="ss">:ok</span><span class="p">,</span> <span class="s2">&quot;User:</span><span class="si">#{</span><span class="n">user</span><span class="p">.</span><span class="n">id</span><span class="si">}</span><span class="s2">&quot;</span> <span class="p">}</span>
+  <span class="kd">def</span> <span class="n">for_token</span><span class="p">(</span><span class="bp">_</span><span class="p">),</span> <span class="ss">do</span><span class="p">:</span> <span class="p">{</span> <span class="ss">:error</span><span class="p">,</span> <span class="s2">&quot;Unknown resource type&quot;</span> <span class="p">}</span>
+
+  <span class="kd">def</span> <span class="n">from_token</span><span class="p">(</span><span class="s2">&quot;User:&quot;</span> <span class="o">&lt;&gt;</span> <span class="n">id</span><span class="p">),</span> <span class="ss">do</span><span class="p">:</span> <span class="p">{</span> <span class="ss">:ok</span><span class="p">,</span> <span class="nc">Repo</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="nc">User</span><span class="p">,</span> <span class="nc">String</span><span class="p">.</span><span class="n">to_integer</span><span class="p">(</span><span class="n">id</span><span class="p">))</span> <span class="p">}</span>
+  <span class="kd">def</span> <span class="n">from_token</span><span class="p">(</span><span class="bp">_</span><span class="p">),</span> <span class="ss">do</span><span class="p">:</span> <span class="p">{</span> <span class="ss">:error</span><span class="p">,</span> <span class="s2">&quot;Unknown resource type&quot;</span> <span class="p">}</span>
+<span class="k">end</span></code></pre></div>
+
+<p>Need to support different model types? Just add a pattern match in your serializer!</p>
+
+<p>So, at this point, we’re setup to use Guardian, we just need to decide <em>where</em>
+and how we’re going to apply it. I’ll show you the pieces.</p>
+
+<h3 id="plug">Plug</h3>
+
+<p>Guardian comes with Plug integration. I’m going to focus on Phoenix but any plug
+will work.</p>
+
+<p>There are three phases to Guardians plug integration.</p>
+
+<ol>
+  <li>Verifying the token</li>
+  <li>Loading the resource</li>
+  <li>Requireing a verified token</li>
+</ol>
+
+<div class="highlight"><pre><code class="language-elixir" data-lang="elixir"><span class="n">pipeline</span> <span class="ss">:browser_session</span> <span class="k">do</span>
+  <span class="n">plug</span> <span class="nc">Guardian.Plug.VerifySession</span> <span class="c1"># looks in the session for the token</span>
+  <span class="n">plug</span> <span class="nc">Guardian.Plug.LoadResource</span>
+<span class="k">end</span>
+
+<span class="n">pipeline</span> <span class="ss">:api</span> <span class="k">do</span>
+  <span class="n">plug</span> <span class="ss">:accepts</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;json&quot;</span><span class="p">]</span>
+  <span class="n">plug</span> <span class="nc">Guardian.Plug.VerifyAuthorization</span> <span class="c1"># Looks in the Authorization header for the token</span>
+  <span class="n">plug</span> <span class="nc">Guardian.Plug.LoadResource</span>
+<span class="k">end</span></code></pre></div>
+
+<p>These two pipelines will verify the token (if present) and load the resource if
+there was a verified token found. If the token isn’t there or is invalid,
+nothing bad happens, the load resource won’t do anything.</p>
+
+<p>When we want to ensure that someone is authenticated we can ensure they have a
+session (an authentication session rather than a plug session).</p>
+
+<div class="highlight"><pre><code class="language-elixir" data-lang="elixir"><span class="kd">defmodule</span> <span class="nc">PhoenixGuardian.UserController</span> <span class="k">do</span>
+  <span class="kn">use</span> <span class="nc">PhoenixGuardian.Web</span><span class="p">,</span> <span class="ss">:controller</span>
+
+  <span class="kn">alias</span> <span class="nc">PhoenixGuardian.User</span>
+
+  <span class="n">plug</span> <span class="nc">Guardian.Plug.EnsureSession</span><span class="p">,</span> <span class="p">%{</span> <span class="ss">on_failure</span><span class="p">:</span> <span class="p">{</span> <span class="nc">PhoenixGuardian.SessionController</span><span class="p">,</span> <span class="ss">:new</span> <span class="p">}</span> <span class="p">}</span> <span class="ow">when</span> <span class="ow">not</span> <span class="n">action</span> <span class="ow">in</span> <span class="p">[</span><span class="ss">:new</span><span class="p">,</span> <span class="ss">:create</span><span class="p">]</span>
+
+  <span class="c1"># ....</span>
+<span class="k">end</span></code></pre></div>
+
+<p>Ok, so there’s some stuff going on there. Lets break it down.</p>
+
+<p>The Guardian.Plug.EnsureSession checks to make sure there was a valid token
+found. If it finds one we move on.</p>
+
+<p>If the plug cannot find a verified token for the connection, it calls the
+<code>on_failure</code> function.  This function should be arity 2 and receive a Plug.Conn.t and it’s params. It’s up to this function to handle what should happen when things go south.</p>
+
+<p>We <em>could</em> have put this plug in the pipeline, the only reason I didn’t do that
+for this controller was because I wanted more control over the actions it fires
+for, hence the <code>when not action</code> stuff.</p>
+
+<h3 id="signing-in">Signing In.</h3>
+
+<p>Ok so, this is all good and well. We’ve configured it, setup a serializer, and
+created our pipelines, how to sign in?</p>
+
+<div class="highlight"><pre><code class="language-elixir" data-lang="elixir"><span class="kd">def</span> <span class="n">create</span><span class="p">(</span><span class="n">conn</span><span class="p">,</span> <span class="p">%{</span><span class="s2">&quot;user&quot;</span> <span class="p">=&gt;</span> <span class="n">user_params</span><span class="p">})</span> <span class="k">do</span>
+  <span class="n">changeset</span> <span class="p">=</span> <span class="nc">User</span><span class="p">.</span><span class="n">create_changeset</span><span class="p">(%</span><span class="nc">User</span><span class="p">{},</span> <span class="n">user_params</span><span class="p">)</span>
+
+  <span class="k">if</span> <span class="n">changeset</span><span class="p">.</span><span class="n">valid?</span> <span class="k">do</span>
+    <span class="n">user</span> <span class="p">=</span> <span class="nc">Repo</span><span class="p">.</span><span class="n">insert</span><span class="p">(</span><span class="n">changeset</span><span class="p">)</span>
+
+    <span class="n">conn</span>
+    <span class="o">|&gt;</span> <span class="n">put_flash</span><span class="p">(</span><span class="ss">:info</span><span class="p">,</span> <span class="s2">&quot;User created successfully.&quot;</span><span class="p">)</span>
+    <span class="o">|&gt;</span> <span class="nc">Guardian.Plug</span><span class="p">.</span><span class="n">sign_in</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="ss">:csrf</span><span class="p">)</span>
+    <span class="o">|&gt;</span> <span class="n">redirect</span><span class="p">(</span><span class="ss">to</span><span class="p">:</span> <span class="n">user_path</span><span class="p">(</span><span class="n">conn</span><span class="p">,</span> <span class="ss">:index</span><span class="p">))</span>
+  <span class="k">else</span>
+    <span class="n">render</span><span class="p">(</span><span class="n">conn</span><span class="p">,</span> <span class="s2">&quot;new.html&quot;</span><span class="p">,</span> <span class="ss">changeset</span><span class="p">:</span> <span class="n">changeset</span><span class="p">)</span>
+  <span class="k">end</span>
+<span class="k">end</span></code></pre></div>
+
+<p>See that tiny line in the middle there. <code>Guardian.Plug.sign_in(user, :csrf)</code>.
+That’s it. Once you do that, your token is generated, pumped into the connection
+and session and off you go.</p>
+
+<p>The <code>:csrf</code> determines the tokens type (stored in the <code>:aud</code> field). This can be
+anything you want it to be (e.g. ‘token’, ‘csrf’, ‘api’, ‘oauth’ etc). The
+<code>:csrf</code> one is special though. When you generate a csrf token, you’re asserting
+that that token is only useful when coupled with the csrf token it was generated
+for. i.e. browser pages this app generated. This would be the traditional only
+works on my page type of auth.</p>
+
+<h3 id="logout">Logout</h3>
+
+<div class="highlight"><pre><code class="language-elixir" data-lang="elixir"><span class="nc">Guardian.Plug</span><span class="p">.</span><span class="n">logout</span><span class="p">(</span><span class="n">conn</span><span class="p">)</span>
+<span class="o">|&gt;</span> <span class="n">redirect_or_something</span></code></pre></div>
+
+<h3 id="channels">Channels</h3>
+
+<p>Ok so, I did say you could use this for channels right. Here it is:</p>
+
+<p><code>some_html.html</code></p>
+
+<div class="highlight"><pre><code class="language-erb" data-lang="erb"><span class="x">&lt;meta name=&#39;csrf_token&#39; content=&#39;</span><span class="cp">&lt;%=</span> <span class="no">Plug</span><span class="o">.</span><span class="n">CSRFProtection</span><span class="o">.</span><span class="n">get_csrf_token</span> <span class="cp">%&gt;</span><span class="x">&#39;&gt;</span>
+<span class="cp">&lt;%=</span> <span class="k">if</span> <span class="no">Guardian</span><span class="o">.</span><span class="n">Plug</span><span class="o">.</span><span class="n">current_token</span><span class="p">(</span><span class="vi">@conn</span><span class="p">)</span> <span class="k">do</span> <span class="cp">%&gt;</span><span class="x"></span>
+<span class="x">  &lt;meta name=&#39;guardian_token&#39; content=&quot;</span><span class="cp">&lt;%=</span> <span class="no">Guardian</span><span class="o">.</span><span class="n">Plug</span><span class="o">.</span><span class="n">current_token</span><span class="p">(</span><span class="vi">@conn</span><span class="p">)</span> <span class="cp">%&gt;</span><span class="x">&quot;&gt;</span>
+<span class="cp">&lt;%</span> <span class="k">end</span> <span class="cp">%&gt;</span><span class="x"></span></code></pre></div>
+
+<p>Since we generated the token as <code>:csrf</code> we need to pass in the csrf token, so we
+dump them on the page as a way to pass it to the javascript client.</p>
+
+<p><code>some_javascript.js</code></p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">let</span> <span class="nx">socket</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Socket</span><span class="p">(</span><span class="s2">&quot;/ws&quot;</span><span class="p">);</span>
+<span class="nx">socket</span><span class="p">.</span><span class="nx">connect</span><span class="p">();</span>
+
+<span class="kd">let</span> <span class="nx">guardianToken</span> <span class="o">=</span> <span class="nx">jQuery</span><span class="p">(</span><span class="s1">&#39;meta[name=&quot;guardian_token&quot;]&#39;</span><span class="p">).</span><span class="nx">attr</span><span class="p">(</span><span class="s1">&#39;content&#39;</span><span class="p">);</span>
+<span class="kd">let</span> <span class="nx">csrfToken</span> <span class="o">=</span> <span class="nx">jQuery</span><span class="p">(</span><span class="s1">&#39;meta[name=&quot;csrf_token&quot;]&#39;</span><span class="p">).</span><span class="nx">attr</span><span class="p">(</span><span class="s1">&#39;content&#39;</span><span class="p">);</span>
+
+<span class="kd">let</span> <span class="nx">chan</span> <span class="o">=</span> <span class="nx">socket</span><span class="p">.</span><span class="nx">chan</span><span class="p">(</span><span class="s2">&quot;pings&quot;</span><span class="p">,</span> <span class="p">{</span> <span class="nx">guardian_token</span><span class="o">:</span> <span class="nx">guardianToken</span><span class="p">,</span> <span class="nx">csrf_token</span><span class="o">:</span> <span class="nx">csrfToken</span> <span class="p">});</span></code></pre></div>
+
+<p><code>phoenix_guardian/user_channel.ex</code></p>
+
+<div class="highlight"><pre><code class="language-elixir" data-lang="elixir"><span class="kd">defmodule</span> <span class="nc">PhoenixGuardian.UsersChannel</span> <span class="k">do</span>
+  <span class="kn">use</span> <span class="nc">Phoenix.Channel</span>
+  <span class="kn">use</span> <span class="nc">Guardian.Channel</span>
+
+  <span class="kd">def</span> <span class="n">join</span><span class="p">(</span><span class="n">_room</span><span class="p">,</span> <span class="p">%{</span> <span class="ss">claims</span><span class="p">:</span> <span class="n">claims</span><span class="p">,</span> <span class="ss">resource</span><span class="p">:</span> <span class="n">resource</span> <span class="p">},</span> <span class="n">socket</span><span class="p">),</span> <span class="ss">do</span><span class="p">:</span> <span class="p">{</span> <span class="ss">:ok</span><span class="p">,</span> <span class="p">%{</span> <span class="ss">message</span><span class="p">:</span> <span class="s2">&quot;Joined&quot;</span> <span class="p">},</span> <span class="n">socket</span> <span class="p">}</span>
+  <span class="kd">def</span> <span class="n">join</span><span class="p">(</span><span class="n">room</span><span class="p">,</span> <span class="bp">_</span><span class="p">,</span> <span class="n">socket</span><span class="p">),</span> <span class="ss">do</span><span class="p">:</span> <span class="p">{</span> <span class="ss">:error</span><span class="p">,</span>  <span class="ss">:authentication_required</span> <span class="p">}</span>
+
+  <span class="kd">def</span> <span class="n">handle_in</span><span class="p">(</span><span class="s2">&quot;ping&quot;</span><span class="p">,</span> <span class="n">_payload</span><span class="p">,</span> <span class="n">socket</span><span class="p">)</span> <span class="k">do</span>
+    <span class="n">user</span> <span class="p">=</span> <span class="nc">Guardian.Channel</span><span class="p">.</span><span class="n">current_resource</span><span class="p">(</span><span class="n">socket</span><span class="p">)</span>
+    <span class="n">broadcast</span> <span class="n">socket</span><span class="p">,</span> <span class="s2">&quot;pong&quot;</span><span class="p">,</span> <span class="p">%{</span> <span class="ss">message</span><span class="p">:</span> <span class="s2">&quot;pong&quot;</span><span class="p">,</span> <span class="ss">from</span><span class="p">:</span> <span class="n">user</span><span class="p">.</span><span class="n">email</span> <span class="p">}</span>
+    <span class="p">{</span> <span class="ss">:noreply</span><span class="p">,</span> <span class="n">socket</span> <span class="p">}</span>
+  <span class="k">end</span>
+
+  <span class="kd">def</span> <span class="n">handle_guardian_auth_failure</span><span class="p">(</span><span class="n">reason</span><span class="p">),</span> <span class="ss">do</span><span class="p">:</span> <span class="p">{</span> <span class="ss">:error</span><span class="p">,</span> <span class="p">%{</span> <span class="ss">error</span><span class="p">:</span> <span class="n">reason</span> <span class="p">}</span> <span class="p">}</span>
+<span class="k">end</span></code></pre></div>
+
+<p>When Guardian finds a valid token, it extracts the claims and the resource, and
+calls <code>join</code> with them in the map. The keys to pattern match on for
+authenticated joins are <code>claims</code> and <code>resource</code>.</p>
+
+<p>If you’re not using CSRF just don’t pass it into the join.</p>
+
+<p>When Guardian cannot verify the token, it will call <code>handle_guardian_auth_failure</code> with the reason it failed.</p>
+
+<p>Well, thats a whirlwind tour of Guardian as it stands today. There’s a lot more
+to say, but for the first post I think that will do.</p>
+
+
+      </div>
+      <footer>
+        <p><a href="/elixir/guardian/2015/06/19/guardian-getting-started.html">read more &raquo;</a></p>
+      </footer>
+    </article>
+    
+    <article>
+      <header>
         <h2><a href="/elixir/2015/05/25/elixir-sudoku.html">Elixir Sudoku</a></h2>
         <p><time datetime="2015-05-25T00:00:00-07:00">May 25, 2015</time> • elixir</p>
       </header>
