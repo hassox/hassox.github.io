@@ -68,7 +68,7 @@ end
 {% endhighlight %}
 
 Guardian relies on [Joken](https://github.com/bryanjos/joken) for it's JWTs. Guardian will bring it in, but you'll
-need to verify it.
+need to configure it.
 
 {% highlight elixir %}
 config :joken,

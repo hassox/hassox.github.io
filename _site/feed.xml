@@ -5,8 +5,8 @@
     <description>Tech and Stuff</description>
     <link>http://hassox.github.io</link>
     <atom:link href="http://hassox.github.iofeed.xml" rel="self" type="application/rss+xml" />
-    <pubDate>Fri, 19 Jun 2015 11:18:37 -0700</pubDate>
-    <lastBuildDate>Fri, 19 Jun 2015 11:18:37 -0700</lastBuildDate>
+    <pubDate>Fri, 19 Jun 2015 11:46:18 -0700</pubDate>
+    <lastBuildDate>Fri, 19 Jun 2015 11:46:18 -0700</lastBuildDate>
     <generator>Jekyll v2.5.3</generator>
     
       <item>
@@ -72,7 +72,7 @@ Screw language differences.&lt;/p&gt;
 &lt;span class=&quot;k&quot;&gt;end&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;Guardian relies on &lt;a href=&quot;https://github.com/bryanjos/joken&quot;&gt;Joken&lt;/a&gt; for it’s JWTs. Guardian will bring it in, but you’ll
-need to verify it.&lt;/p&gt;
+need to configure it.&lt;/p&gt;
 
 &lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-elixir&quot; data-lang=&quot;elixir&quot;&gt;&lt;span class=&quot;n&quot;&gt;config&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:joken&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
        &lt;span class=&quot;ss&quot;&gt;secret_key&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;lksjdflksjfowieruwoieruowier&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
