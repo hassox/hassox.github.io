@@ -37,7 +37,6 @@ config :guardian, Guardian,
          default: [:read, :write],
          admin: [:dashboard, :make_payments]
        }
-```
 {% endhighlight %}
 
 Seems pretty straight forward right? The `:default` and `:admin` represent
@@ -123,7 +122,8 @@ different set, just deprecate the first one and create a new one. No problem.
 Lastly, just in case you want to get right down into it.
 
 {% highlight elixir %}
-Guardian.Permissions.to_value([:read, :write], :default) |> Guardian.Permissions.to_list(:default)
+Guardian.Permissions.to_value([:read, :write], :default)
+|> Guardian.Permissions.to_list(:default)
 {% endhighlight %}
 
 

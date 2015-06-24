@@ -63,8 +63,7 @@ them.</p>
        <span class="ss">permissions</span><span class="p">:</span> <span class="p">%{</span>
          <span class="ss">default</span><span class="p">:</span> <span class="p">[</span><span class="ss">:read</span><span class="p">,</span> <span class="ss">:write</span><span class="p">],</span>
          <span class="ss">admin</span><span class="p">:</span> <span class="p">[</span><span class="ss">:dashboard</span><span class="p">,</span> <span class="ss">:make_payments</span><span class="p">]</span>
-       <span class="p">}</span>
-<span class="err">```</span></code></pre></div>
+       <span class="p">}</span></code></pre></div>
 
 <p>Seems pretty straight forward right? The <code>:default</code> and <code>:admin</code> represent
 different sets of permissions. You can have as many sets as you like. I’d lean
@@ -138,7 +137,8 @@ different set, just deprecate the first one and create a new one. No problem.</p
 
 <p>Lastly, just in case you want to get right down into it.</p>
 
-<div class="highlight"><pre><code class="language-elixir" data-lang="elixir"><span class="nc">Guardian.Permissions</span><span class="p">.</span><span class="n">to_value</span><span class="p">([</span><span class="ss">:read</span><span class="p">,</span> <span class="ss">:write</span><span class="p">],</span> <span class="ss">:default</span><span class="p">)</span> <span class="o">|&gt;</span> <span class="nc">Guardian.Permissions</span><span class="p">.</span><span class="n">to_list</span><span class="p">(</span><span class="ss">:default</span><span class="p">)</span></code></pre></div>
+<div class="highlight"><pre><code class="language-elixir" data-lang="elixir"><span class="nc">Guardian.Permissions</span><span class="p">.</span><span class="n">to_value</span><span class="p">([</span><span class="ss">:read</span><span class="p">,</span> <span class="ss">:write</span><span class="p">],</span> <span class="ss">:default</span><span class="p">)</span>
+<span class="o">|&gt;</span> <span class="nc">Guardian.Permissions</span><span class="p">.</span><span class="n">to_list</span><span class="p">(</span><span class="ss">:default</span><span class="p">)</span></code></pre></div>
 
 
       </div>
