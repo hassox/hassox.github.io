@@ -30,6 +30,137 @@
     
     <article>
       <header>
+        <h2><a href="/elixir/guardian/2015/06/24/introducing-guardian-permissions.html">Introducing Guardian Permissions</a></h2>
+        <p><time datetime="2015-06-24T00:00:00-07:00">Jun 24, 2015</time> • elixir and guardian</p>
+      </header>
+      <div>
+<p>I’m really loving using JWT’s for authentication. They’re a great little self
+contained set of information that I can use, with or without hitting the db.</p>
+
+<p>One thing that was missing was permissions. Anyone who’s implemented OAuth will
+be familiar with why these are needed on a per token basis. Imagine you head
+over to a site to OAuth an app. That app will be authenticating as you, but
+usually with a customizable list of permissions. One of the tricky parts of this
+is that once you add OAuth, you have to make sure all your relevant endpoints
+(including downstream s2s) are aware of those permissions and have some way to
+get to them. Not a fun X hours/days tracking all that down. Don’t worry.
+Guardian has your back so you can make your apps permission aware as early as
+you like.</p>
+
+<p>JWTs need to be encoded so that they fit into the header of an HTTP request so
+keeping them on the small side is pretty important. That’s why guardian encodes
+all permissions into a bitsting for you.</p>
+
+<p>Enough! Lets see it.</p>
+
+<h3 id="config">Config</h3>
+
+<p>You’ll need to include your list of known permissions in the config. Don’t worry
+if you have to add some, Guardian will handle unknown permissions by ignoring
+them.</p>
+
+<p><code>elixir
+config :guardian, Guardian,
+       permissions: %{
+         default: [:read, :write],
+         admin: [:dashboard, :make_payments]
+       }
+</code></p>
+
+<p>Seems pretty straight forward right? The <code>:default</code> and <code>:admin</code> represent
+different sets of permissions. You can have as many sets as you like. I’d lean
+towards more permissions per set, than more sets though.</p>
+
+<p>A word of caution. Guardian encodes permissions into bitstrings. The <em>position</em>
+of the permission in the list is what determines it’s position in the bits.
+Couple of things to keep in mind:</p>
+
+<ul>
+  <li>Re-ordering is bad</li>
+  <li>Renames are fine</li>
+  <li>Removals need to keep their place in the list</li>
+</ul>
+
+<p>Ok, now that we’ve got the caveats out of the way, lets use it.</p>
+
+<h3 id="sign-in">Sign in</h3>
+
+<p>You can encode these puppies right when you sign in.</p>
+
+<p><code>elixir
+Guardian.Plug.sign_in(conn, resource, :token, perms: %{ default: [:read], admin: [:dashboard]})
+</code></p>
+
+<p>Simple right. The same thing is true when minting manually.</p>
+
+<p><code>elixir
+Guardian.mint(resource, :token, perms: %{ default: [:read], admin: [:dashboard]})
+</code></p>
+
+<p>But what if I add a permission and I want the admin to have access to all the
+things? (I hear myself asking myself).</p>
+
+<p><code>elixir
+Guardian.mint(resource, :token, perms: %{ default: [:read], admin: Guardian.Permissions.max})
+</code></p>
+
+<p>By using the <code>Guardian.Permissions.max/0</code> function, you get it all.</p>
+
+<h3 id="checking-permissions">Checking permissions</h3>
+
+<p>To check them, you’ll need the claims.</p>
+
+<p>```elixir
+# Using a conn
+claims = Guardian.Plug.current_claims(conn)</p>
+
+<h1 id="in-a-channel">In a channel</h1>
+<p>claims = Guardian.Channel.current_claims(socket)
+```</p>
+
+<p>Lets have a look then.</p>
+
+<p>```elixir
+# Check for the existence of all the permissions you need
+Guardian.Permissions.from_claims(claims, :admin)
+|&gt; Guardian.Permissions.all?([:dashboard, :reconcile], :admin)</p>
+
+<h1 id="check-for-the-existence-of-any-the-permissions-you-need">Check for the existence of any the permissions you need</h1>
+<p>Guardian.Permissions.from_claims(claims, :admin)
+|&gt; Guardian.Permissions.any?([:dashboard, :reconcile], :admin)
+```</p>
+
+<p>There’s also a plug version.</p>
+
+<p>```elixir
+defmodule MyApp.MyController do
+  use MyApp.Web, :controller
+  alias Guardian.Permissions
+  alias Guardian.Plug.EnsurePermissions</p>
+
+<p>plug EnsurePermissions, on_failure: { MyApp.MyController, :forbidden }, admin: [:dashboard]</p>
+
+<p>end
+```</p>
+
+<p>This will do an <code>all?</code> check on the permissions for any that you specify.</p>
+
+<p>One thing to bear in mind with these permission sets. You shouldn’t feel locked
+in stone on them. If you make a set and then find that you’d like to have a
+different set, just deprecate the first one and create a new one. No problem.</p>
+
+<p>Guardian tries to keep it simple so I think theres not much more to say in a
+blog post. Enjoy!</p>
+
+
+      </div>
+      <footer>
+        <p><a href="/elixir/guardian/2015/06/24/introducing-guardian-permissions.html">read more &raquo;</a></p>
+      </footer>
+    </article>
+    
+    <article>
+      <header>
         <h2><a href="/elixir/guardian/2015/06/19/guardian-getting-started.html">Getting started with Guardian</a></h2>
         <p><time datetime="2015-06-19T00:00:00-07:00">Jun 19, 2015</time> • elixir and guardian</p>
       </header>
