@@ -59,13 +59,12 @@ all permissions into a bitsting for you.</p>
 if you have to add some, Guardian will handle unknown permissions by ignoring
 them.</p>
 
-<p><code>elixir
-config :guardian, Guardian,
-       permissions: %{
-         default: [:read, :write],
-         admin: [:dashboard, :make_payments]
-       }
-</code></p>
+<div class="highlight"><pre><code class="language-elixir" data-lang="elixir"><span class="n">config</span> <span class="ss">:guardian</span><span class="p">,</span> <span class="nc">Guardian</span><span class="p">,</span>
+       <span class="ss">permissions</span><span class="p">:</span> <span class="p">%{</span>
+         <span class="ss">default</span><span class="p">:</span> <span class="p">[</span><span class="ss">:read</span><span class="p">,</span> <span class="ss">:write</span><span class="p">],</span>
+         <span class="ss">admin</span><span class="p">:</span> <span class="p">[</span><span class="ss">:dashboard</span><span class="p">,</span> <span class="ss">:make_payments</span><span class="p">]</span>
+       <span class="p">}</span>
+<span class="err">```</span></code></pre></div>
 
 <p>Seems pretty straight forward right? The <code>:default</code> and <code>:admin</code> represent
 different sets of permissions. You can have as many sets as you like. I’d lean
@@ -87,22 +86,16 @@ Couple of things to keep in mind:</p>
 
 <p>You can encode these puppies right when you sign in.</p>
 
-<p><code>elixir
-Guardian.Plug.sign_in(conn, resource, :token, perms: %{ default: [:read], admin: [:dashboard]})
-</code></p>
+<div class="highlight"><pre><code class="language-elixir" data-lang="elixir"><span class="nc">Guardian.Plug</span><span class="p">.</span><span class="n">sign_in</span><span class="p">(</span><span class="n">conn</span><span class="p">,</span> <span class="n">resource</span><span class="p">,</span> <span class="ss">:token</span><span class="p">,</span> <span class="ss">perms</span><span class="p">:</span> <span class="p">%{</span> <span class="ss">default</span><span class="p">:</span> <span class="p">[</span><span class="ss">:read</span><span class="p">],</span> <span class="ss">admin</span><span class="p">:</span> <span class="p">[</span><span class="ss">:dashboard</span><span class="p">]})</span></code></pre></div>
 
 <p>Simple right. The same thing is true when minting manually.</p>
 
-<p><code>elixir
-Guardian.mint(resource, :token, perms: %{ default: [:read], admin: [:dashboard]})
-</code></p>
+<div class="highlight"><pre><code class="language-elixir" data-lang="elixir"><span class="nc">Guardian</span><span class="p">.</span><span class="n">mint</span><span class="p">(</span><span class="n">resource</span><span class="p">,</span> <span class="ss">:token</span><span class="p">,</span> <span class="ss">perms</span><span class="p">:</span> <span class="p">%{</span> <span class="ss">default</span><span class="p">:</span> <span class="p">[</span><span class="ss">:read</span><span class="p">],</span> <span class="ss">admin</span><span class="p">:</span> <span class="p">[</span><span class="ss">:dashboard</span><span class="p">]})</span></code></pre></div>
 
 <p>But what if I add a permission and I want the admin to have access to all the
 things? (I hear myself asking myself).</p>
 
-<p><code>elixir
-Guardian.mint(resource, :token, perms: %{ default: [:read], admin: Guardian.Permissions.max})
-</code></p>
+<div class="highlight"><pre><code class="language-elixir" data-lang="elixir"><span class="nc">Guardian</span><span class="p">.</span><span class="n">mint</span><span class="p">(</span><span class="n">resource</span><span class="p">,</span> <span class="ss">:token</span><span class="p">,</span> <span class="ss">perms</span><span class="p">:</span> <span class="p">%{</span> <span class="ss">default</span><span class="p">:</span> <span class="p">[</span><span class="ss">:read</span><span class="p">],</span> <span class="ss">admin</span><span class="p">:</span> <span class="nc">Guardian.Permissions</span><span class="p">.</span><span class="n">max</span><span class="p">})</span></code></pre></div>
 
 <p>By using the <code>Guardian.Permissions.max/0</code> function, you get it all.</p>
 
@@ -110,38 +103,32 @@ Guardian.mint(resource, :token, perms: %{ default: [:read], admin: Guardian.Perm
 
 <p>To check them, you’ll need the claims.</p>
 
-<p>```elixir
-# Using a conn
-claims = Guardian.Plug.current_claims(conn)</p>
+<div class="highlight"><pre><code class="language-elixir" data-lang="elixir"><span class="c1"># Using a conn</span>
+<span class="n">claims</span> <span class="p">=</span> <span class="nc">Guardian.Plug</span><span class="p">.</span><span class="n">current_claims</span><span class="p">(</span><span class="n">conn</span><span class="p">)</span>
 
-<h1 id="in-a-channel">In a channel</h1>
-<p>claims = Guardian.Channel.current_claims(socket)
-```</p>
+<span class="c1"># In a channel</span>
+<span class="n">claims</span> <span class="p">=</span> <span class="nc">Guardian.Channel</span><span class="p">.</span><span class="n">current_claims</span><span class="p">(</span><span class="n">socket</span><span class="p">)</span></code></pre></div>
 
 <p>Lets have a look then.</p>
 
-<p>```elixir
-# Check for the existence of all the permissions you need
-Guardian.Permissions.from_claims(claims, :admin)
-|&gt; Guardian.Permissions.all?([:dashboard, :reconcile], :admin)</p>
+<div class="highlight"><pre><code class="language-elixir" data-lang="elixir"><span class="c1"># Check for the existence of all the permissions you need</span>
+<span class="nc">Guardian.Permissions</span><span class="p">.</span><span class="n">from_claims</span><span class="p">(</span><span class="n">claims</span><span class="p">,</span> <span class="ss">:admin</span><span class="p">)</span>
+<span class="o">|&gt;</span> <span class="nc">Guardian.Permissions</span><span class="p">.</span><span class="n">all?</span><span class="p">([</span><span class="ss">:dashboard</span><span class="p">,</span> <span class="ss">:reconcile</span><span class="p">],</span> <span class="ss">:admin</span><span class="p">)</span>
 
-<h1 id="check-for-the-existence-of-any-the-permissions-you-need">Check for the existence of any the permissions you need</h1>
-<p>Guardian.Permissions.from_claims(claims, :admin)
-|&gt; Guardian.Permissions.any?([:dashboard, :reconcile], :admin)
-```</p>
+<span class="c1"># Check for the existence of any the permissions you need</span>
+<span class="nc">Guardian.Permissions</span><span class="p">.</span><span class="n">from_claims</span><span class="p">(</span><span class="n">claims</span><span class="p">,</span> <span class="ss">:admin</span><span class="p">)</span>
+<span class="o">|&gt;</span> <span class="nc">Guardian.Permissions</span><span class="p">.</span><span class="n">any?</span><span class="p">([</span><span class="ss">:dashboard</span><span class="p">,</span> <span class="ss">:reconcile</span><span class="p">],</span> <span class="ss">:admin</span><span class="p">)</span></code></pre></div>
 
 <p>There’s also a plug version.</p>
 
-<p>```elixir
-defmodule MyApp.MyController do
-  use MyApp.Web, :controller
-  alias Guardian.Permissions
-  alias Guardian.Plug.EnsurePermissions</p>
+<div class="highlight"><pre><code class="language-elixir" data-lang="elixir"><span class="kd">defmodule</span> <span class="nc">MyApp.MyController</span> <span class="k">do</span>
+  <span class="kn">use</span> <span class="nc">MyApp.Web</span><span class="p">,</span> <span class="ss">:controller</span>
+  <span class="kn">alias</span> <span class="nc">Guardian.Permissions</span>
+  <span class="kn">alias</span> <span class="nc">Guardian.Plug.EnsurePermissions</span>
 
-<p>plug EnsurePermissions, on_failure: { MyApp.MyController, :forbidden }, admin: [:dashboard]</p>
+  <span class="n">plug</span> <span class="nc">EnsurePermissions</span><span class="p">,</span> <span class="ss">on_failure</span><span class="p">:</span> <span class="p">{</span> <span class="nc">MyApp.MyController</span><span class="p">,</span> <span class="ss">:forbidden</span> <span class="p">},</span> <span class="ss">admin</span><span class="p">:</span> <span class="p">[</span><span class="ss">:dashboard</span><span class="p">]</span>
 
-<p>end
-```</p>
+<span class="k">end</span></code></pre></div>
 
 <p>This will do an <code>all?</code> check on the permissions for any that you specify.</p>
 
@@ -149,8 +136,9 @@ defmodule MyApp.MyController do
 in stone on them. If you make a set and then find that you’d like to have a
 different set, just deprecate the first one and create a new one. No problem.</p>
 
-<p>Guardian tries to keep it simple so I think theres not much more to say in a
-blog post. Enjoy!</p>
+<p>Lastly, just in case you want to get right down into it.</p>
+
+<div class="highlight"><pre><code class="language-elixir" data-lang="elixir"><span class="nc">Guardian.Permissions</span><span class="p">.</span><span class="n">to_value</span><span class="p">([</span><span class="ss">:read</span><span class="p">,</span> <span class="ss">:write</span><span class="p">],</span> <span class="ss">:default</span><span class="p">)</span> <span class="o">|&gt;</span> <span class="nc">Guardian.Permissions</span><span class="p">.</span><span class="n">to_list</span><span class="p">(</span><span class="ss">:default</span><span class="p">)</span></code></pre></div>
 
 
       </div>
