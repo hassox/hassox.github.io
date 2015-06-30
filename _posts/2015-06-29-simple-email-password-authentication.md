@@ -34,7 +34,7 @@ user](https://github.com/hassox/phoenix_guardian/blob/master/web/controllers/use
 
 config.exs
 
-```elixir
+{% highlight elixir %}
 config :joken, config_module: Guardian.JWT
 
 config :guardian, Guardian,
@@ -43,11 +43,11 @@ config :guardian, Guardian,
       verify_issuer: true,
       secret_key: "lksdjowiurowieurlkjsdlwwer",
       serializer: PhoenixGuardian.GuardianSerializer
-```
+{% endhighlight %}
 
 web/routes.ex
 
-```elixir
+{% highlight elixir %}
 defmodule PhoenixGuardian.Router do
   use PhoenixGuardian.Web, :router
 
@@ -66,7 +66,7 @@ defmodule PhoenixGuardian.Router do
 
     resources "/users", UserController
   end
-```
+{% endhighlight %}
 
 We've setup a pipeline for authenticating browser requests (i.e. requests from
 the session). Note that this will not actually kick anyone from the app, that
@@ -74,7 +74,7 @@ will come later.
 
 You'll need a serializer. I put mine in lib/phoenix\_guardian/guardian\_serializer.ex
 
-```elixir
+{% highlight elixir %}
 defmodule PhoenixGuardian.GuardianSerializer do
   @behaviour Guardian.Serializer
 
@@ -87,7 +87,7 @@ defmodule PhoenixGuardian.GuardianSerializer do
   def from_token("User:" <> id), do: { :ok, Repo.get(User, String.to_integer(id)) }
   def from_token(thing), do: { :error, "Unknown resource type" }
 end
-```
+{% endhighlight %}
 
 The serializer just fetches your resource, or given a resource, it serializes it
 into the token.
@@ -99,7 +99,7 @@ form, and handles the result. It is _also_ where the magic happens. Inside this
 controller, you're issued a JWT into your session. I've tied this one to the
 CSRF token so that it's only good for the life of the session.
 
-```elixir
+{% highlight elixir %}
 defmodule PhoenixGuardian.SessionController do
   use PhoenixGuardian.Web, :controller
 
@@ -134,14 +134,14 @@ defmodule PhoenixGuardian.SessionController do
     |> redirect(to: "/")
   end
 end
-```
+{% endhighlight %}
 
 There's a couple of methods, but most of what's happening is straight forward.
 
 A user lands on the "new" action and we generate a form. We use the
 `User.login_changeset` with the form. It's a simple changeset from the [user.ex model](https://github.com/hassox/phoenix_guardian/blob/master/web/models/user.ex):
 
-```elixir
+{% highlight elixir %}
 def login_changeset(model), do: model |> cast(%{}, ~w(), ~w(email password))
 
 def login_changeset(model, params) do
@@ -149,7 +149,7 @@ def login_changeset(model, params) do
   |> cast(params, ~w(email password), ~w())
   |> validate_password
 end
-```
+{% endhighlight %}
 
 This will just give us a nice error message and interface for checking the
 password.
@@ -159,9 +159,9 @@ Once the form is posted to the `create` method, we'll check the
 
 Once there, we do the 'logging in' part.
 
-```elixir
+{% highlight elixir %}
   |> Guardian.Plug.sign_in(user, :csrf)
-```
+{% endhighlight %}
 
 This line invokes your serializer, generates your token with an expiry of what
 you configured (10 days for this example), pushes it into the session and makes
@@ -176,7 +176,7 @@ So, now we have a logged in user, lets protect something.
 
 In the user\_controller.ex
 
-```elixir
+{% highlight elixir %}
 defmodule PhoenixGuardian.UserController do
   use PhoenixGuardian.Web, :controller
 
@@ -196,7 +196,7 @@ defmodule PhoenixGuardian.UserController do
 
   # …
 
-```
+{% endhighlight %}
 
 I've cut most of it, but you can see in the edit action how we fetch the currently logged in user.
 
