@@ -1,6 +1,6 @@
 ---
   title: API Authentication with Guardian
-  date: 2015-06-29
+  date: 2015-06-30
   categories:
     - elixir
     - guardian

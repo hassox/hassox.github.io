@@ -30,6 +30,92 @@
     
     <article>
       <header>
+        <h2><a href="/elixir/guardian/2015/06/30/api-authentication-with-guardian.html">API Authentication with Guardian</a></h2>
+        <p><time datetime="2015-06-30T00:00:00-07:00">Jun 30, 2015</time> • elixir and guardian</p>
+      </header>
+      <div>
+<p>Over my last couple of posts I’ve talked about <a href="http://hassox.github.io/elixir/guardian/2015/06/19/guardian-getting-started.html">getting
+started</a>,
+<a href="http://hassox.github.io/elixir/guardian/2015/06/24/introducing-guardian-permissions.html">permissions</a>
+and <a href="http://hassox.github.io/elixir/guardian/2015/06/29/simple-email-password-authentication.html">simple email/password
+auth</a>.
+It occured to me that I haven’t covered how to do an API authentication.</p>
+
+<p>Part of the beauty of using JWT is that they have an expiry time built into
+them. In my examples I typically expire them in 30 days, but you can configure
+(or overwrite) this to be any value.</p>
+
+<p>So we’ve added Guardian, created a user and we so far have the ability to create
+a ‘login’ where they’re logged into the session, but what about API endpoints.</p>
+
+<p>One thing that Guardian can do easily is authenticate your application for API
+endpoints. Lets take a quick look at how that works.</p>
+
+<p>In your router, add:</p>
+
+<div class="highlight"><pre><code class="language-elixir" data-lang="elixir"><span class="n">pipeline</span> <span class="ss">:api</span> <span class="k">do</span>
+    <span class="n">plug</span> <span class="ss">:accepts</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;json&quot;</span><span class="p">]</span>
+    <span class="n">plug</span> <span class="nc">Guardian.Plug.VerifyAuthorization</span>
+    <span class="n">plug</span> <span class="nc">Guardian.Plug.LoadResource</span>
+  <span class="k">end</span>
+
+  <span class="n">scope</span> <span class="s2">&quot;/api/v1&quot;</span><span class="p">,</span> <span class="nc">PhoenixGuardian.Api.V</span><span class="mi">1</span> <span class="k">do</span>
+    <span class="n">pipe_through</span> <span class="p">[</span><span class="ss">:api</span><span class="p">]</span>
+
+    <span class="n">resources</span> <span class="s2">&quot;/users&quot;</span><span class="p">,</span> <span class="nc">UserController</span>
+  <span class="k">end</span></code></pre></div>
+
+<p>The verify authorization plug will check the Authorization header for a token,
+and the LoadResource one will load any resource found there.</p>
+
+<p>Ok, so now protecting your API endpoints is just like your web endpoints:</p>
+
+<div class="highlight"><pre><code class="language-elixir" data-lang="elixir"><span class="c1"># web/controllers/api/v1/user_controller.ex</span>
+<span class="kd">defmodule</span> <span class="nc">PhoenixGuardian.Api.V</span><span class="mi">1</span><span class="p">.</span><span class="nc">UserController</span> <span class="k">do</span>
+  <span class="kn">use</span> <span class="nc">PhoenixGuardian.Web</span><span class="p">,</span> <span class="ss">:controller</span>
+
+  <span class="kn">alias</span> <span class="nc">PhoenixGuardian.User</span>
+  <span class="kn">alias</span> <span class="nc">PhoenixGuardian.SessionController</span>
+
+  <span class="n">plug</span> <span class="nc">Guardian.Plug.EnsureSession</span><span class="p">,</span> <span class="ss">on_failure</span><span class="p">:</span> <span class="p">{</span> <span class="nc">SessionController</span><span class="p">,</span> <span class="ss">:unauthenticated_api</span> <span class="p">}</span>
+  <span class="n">plug</span> <span class="ss">:action</span>
+
+  <span class="c1"># …</span>
+  <span class="kd">def</span> <span class="n">index</span><span class="p">(</span><span class="n">conn</span><span class="p">,</span> <span class="n">_params</span><span class="p">)</span> <span class="k">do</span>
+    <span class="n">users</span> <span class="p">=</span> <span class="nc">Repo</span><span class="p">.</span><span class="n">all</span><span class="p">(</span><span class="nc">User</span><span class="p">)</span>
+    <span class="n">json</span><span class="p">(</span><span class="n">conn</span><span class="p">,</span> <span class="p">%{</span> <span class="ss">data</span><span class="p">:</span> <span class="n">users</span><span class="p">,</span> <span class="ss">current_user</span><span class="p">:</span> <span class="nc">Guardian.Plug</span><span class="p">.</span><span class="n">current_resource</span><span class="p">(</span><span class="n">conn</span><span class="p">)</span> <span class="p">})</span>
+  <span class="k">end</span>
+  <span class="c1"># …</span>
+<span class="k">end</span></code></pre></div>
+
+<p>The interaction with API clients is just the same as web session clients. I’ve
+used a different failure method in my SessionController, but other than this the
+token is fine.</p>
+
+<h4 id="how-do-i-get-my-token">How do I get my token?</h4>
+
+<p>So far, we’ve only used the <code>sign_in</code> function on Guardian.Plug, and generated
+CSRF bound tokens. This is great for web pages but not so good for APIs. Lets
+have a look at how to get a token:</p>
+
+<div class="highlight"><pre><code class="language-elixir" data-lang="elixir"><span class="n">user</span> <span class="p">=</span> <span class="nc">Repo</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="nc">User</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<span class="p">{</span> <span class="ss">:ok</span><span class="p">,</span> <span class="n">jwt</span><span class="p">,</span> <span class="n">full_claims</span> <span class="p">}</span> <span class="p">=</span> <span class="nc">Guardian</span><span class="p">.</span><span class="n">mint</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="ss">:api</span><span class="p">)</span></code></pre></div>
+
+<p>This will generate a JWT that you can provide to your client, valid for the
+configured ttl. Once you get to the controller it’s the same API as the browser
+based authentication.</p>
+
+<p>For bonus points, you can also use it for channel authentication!</p>
+
+
+      </div>
+      <footer>
+        <p><a href="/elixir/guardian/2015/06/30/api-authentication-with-guardian.html">read more &raquo;</a></p>
+      </footer>
+    </article>
+    
+    <article>
+      <header>
         <h2><a href="/elixir/guardian/2015/06/29/simple-email-password-authentication.html">Simple email password Authentication</a></h2>
         <p><time datetime="2015-06-29T00:00:00-07:00">Jun 29, 2015</time> • elixir and guardian</p>
       </header>
@@ -231,92 +317,6 @@ simple as possible.</p>
       </div>
       <footer>
         <p><a href="/elixir/guardian/2015/06/29/simple-email-password-authentication.html">read more &raquo;</a></p>
-      </footer>
-    </article>
-    
-    <article>
-      <header>
-        <h2><a href="/elixir/guardian/2015/06/29/api-authentication-with-guardian.html">API Authentication with Guardian</a></h2>
-        <p><time datetime="2015-06-29T00:00:00-07:00">Jun 29, 2015</time> • elixir and guardian</p>
-      </header>
-      <div>
-<p>Over my last couple of posts I’ve talked about <a href="http://hassox.github.io/elixir/guardian/2015/06/19/guardian-getting-started.html">getting
-started</a>,
-<a href="http://hassox.github.io/elixir/guardian/2015/06/24/introducing-guardian-permissions.html">permissions</a>
-and <a href="http://hassox.github.io/elixir/guardian/2015/06/29/simple-email-password-authentication.html">simple email/password
-auth</a>.
-It occured to me that I haven’t covered how to do an API authentication.</p>
-
-<p>Part of the beauty of using JWT is that they have an expiry time built into
-them. In my examples I typically expire them in 30 days, but you can configure
-(or overwrite) this to be any value.</p>
-
-<p>So we’ve added Guardian, created a user and we so far have the ability to create
-a ‘login’ where they’re logged into the session, but what about API endpoints.</p>
-
-<p>One thing that Guardian can do easily is authenticate your application for API
-endpoints. Lets take a quick look at how that works.</p>
-
-<p>In your router, add:</p>
-
-<div class="highlight"><pre><code class="language-elixir" data-lang="elixir"><span class="n">pipeline</span> <span class="ss">:api</span> <span class="k">do</span>
-    <span class="n">plug</span> <span class="ss">:accepts</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;json&quot;</span><span class="p">]</span>
-    <span class="n">plug</span> <span class="nc">Guardian.Plug.VerifyAuthorization</span>
-    <span class="n">plug</span> <span class="nc">Guardian.Plug.LoadResource</span>
-  <span class="k">end</span>
-
-  <span class="n">scope</span> <span class="s2">&quot;/api/v1&quot;</span><span class="p">,</span> <span class="nc">PhoenixGuardian.Api.V</span><span class="mi">1</span> <span class="k">do</span>
-    <span class="n">pipe_through</span> <span class="p">[</span><span class="ss">:api</span><span class="p">]</span>
-
-    <span class="n">resources</span> <span class="s2">&quot;/users&quot;</span><span class="p">,</span> <span class="nc">UserController</span>
-  <span class="k">end</span></code></pre></div>
-
-<p>The verify authorization plug will check the Authorization header for a token,
-and the LoadResource one will load any resource found there.</p>
-
-<p>Ok, so now protecting your API endpoints is just like your web endpoints:</p>
-
-<div class="highlight"><pre><code class="language-elixir" data-lang="elixir"><span class="c1"># web/controllers/api/v1/user_controller.ex</span>
-<span class="kd">defmodule</span> <span class="nc">PhoenixGuardian.Api.V</span><span class="mi">1</span><span class="p">.</span><span class="nc">UserController</span> <span class="k">do</span>
-  <span class="kn">use</span> <span class="nc">PhoenixGuardian.Web</span><span class="p">,</span> <span class="ss">:controller</span>
-
-  <span class="kn">alias</span> <span class="nc">PhoenixGuardian.User</span>
-  <span class="kn">alias</span> <span class="nc">PhoenixGuardian.SessionController</span>
-
-  <span class="n">plug</span> <span class="nc">Guardian.Plug.EnsureSession</span><span class="p">,</span> <span class="ss">on_failure</span><span class="p">:</span> <span class="p">{</span> <span class="nc">SessionController</span><span class="p">,</span> <span class="ss">:unauthenticated_api</span> <span class="p">}</span>
-  <span class="n">plug</span> <span class="ss">:action</span>
-
-  <span class="c1"># …</span>
-  <span class="kd">def</span> <span class="n">index</span><span class="p">(</span><span class="n">conn</span><span class="p">,</span> <span class="n">_params</span><span class="p">)</span> <span class="k">do</span>
-    <span class="n">users</span> <span class="p">=</span> <span class="nc">Repo</span><span class="p">.</span><span class="n">all</span><span class="p">(</span><span class="nc">User</span><span class="p">)</span>
-    <span class="n">json</span><span class="p">(</span><span class="n">conn</span><span class="p">,</span> <span class="p">%{</span> <span class="ss">data</span><span class="p">:</span> <span class="n">users</span><span class="p">,</span> <span class="ss">current_user</span><span class="p">:</span> <span class="nc">Guardian.Plug</span><span class="p">.</span><span class="n">current_resource</span><span class="p">(</span><span class="n">conn</span><span class="p">)</span> <span class="p">})</span>
-  <span class="k">end</span>
-  <span class="c1"># …</span>
-<span class="k">end</span></code></pre></div>
-
-<p>The interaction with API clients is just the same as web session clients. I’ve
-used a different failure method in my SessionController, but other than this the
-token is fine.</p>
-
-<h4 id="how-do-i-get-my-token">How do I get my token?</h4>
-
-<p>So far, we’ve only used the <code>sign_in</code> function on Guardian.Plug, and generated
-CSRF bound tokens. This is great for web pages but not so good for APIs. Lets
-have a look at how to get a token:</p>
-
-<div class="highlight"><pre><code class="language-elixir" data-lang="elixir"><span class="n">user</span> <span class="p">=</span> <span class="nc">Repo</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="nc">User</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-<span class="p">{</span> <span class="ss">:ok</span><span class="p">,</span> <span class="n">jwt</span><span class="p">,</span> <span class="n">full_claims</span> <span class="p">}</span> <span class="p">=</span> <span class="nc">Guardian</span><span class="p">.</span><span class="n">mint</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="ss">:api</span><span class="p">)</span></code></pre></div>
-
-<p>This will generate a JWT that you can provide to your client, valid for the
-configured ttl. Once you get to the controller it’s the same API as the browser
-based authentication.</p>
-
-<p>For bonus points, you can also use it for channel authentication!</p>
-
-
-      </div>
-      <footer>
-        <p><a href="/elixir/guardian/2015/06/29/api-authentication-with-guardian.html">read more &raquo;</a></p>
       </footer>
     </article>
     

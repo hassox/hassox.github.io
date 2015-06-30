@@ -5,9 +5,96 @@
     <description>Tech and Stuff</description>
     <link>http://hassox.github.io</link>
     <atom:link href="http://hassox.github.iofeed.xml" rel="self" type="application/rss+xml" />
-    <pubDate>Mon, 29 Jun 2015 19:20:37 -0700</pubDate>
-    <lastBuildDate>Mon, 29 Jun 2015 19:20:37 -0700</lastBuildDate>
+    <pubDate>Mon, 29 Jun 2015 19:21:26 -0700</pubDate>
+    <lastBuildDate>Mon, 29 Jun 2015 19:21:26 -0700</lastBuildDate>
     <generator>Jekyll v2.5.3</generator>
+    
+      <item>
+        <title>API Authentication with Guardian</title>
+        <description>&lt;p&gt;Over my last couple of posts I’ve talked about &lt;a href=&quot;http://hassox.github.io/elixir/guardian/2015/06/19/guardian-getting-started.html&quot;&gt;getting
+started&lt;/a&gt;,
+&lt;a href=&quot;http://hassox.github.io/elixir/guardian/2015/06/24/introducing-guardian-permissions.html&quot;&gt;permissions&lt;/a&gt;
+and &lt;a href=&quot;http://hassox.github.io/elixir/guardian/2015/06/29/simple-email-password-authentication.html&quot;&gt;simple email/password
+auth&lt;/a&gt;.
+It occured to me that I haven’t covered how to do an API authentication.&lt;/p&gt;
+
+&lt;p&gt;Part of the beauty of using JWT is that they have an expiry time built into
+them. In my examples I typically expire them in 30 days, but you can configure
+(or overwrite) this to be any value.&lt;/p&gt;
+
+&lt;p&gt;So we’ve added Guardian, created a user and we so far have the ability to create
+a ‘login’ where they’re logged into the session, but what about API endpoints.&lt;/p&gt;
+
+&lt;p&gt;One thing that Guardian can do easily is authenticate your application for API
+endpoints. Lets take a quick look at how that works.&lt;/p&gt;
+
+&lt;p&gt;In your router, add:&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-elixir&quot; data-lang=&quot;elixir&quot;&gt;&lt;span class=&quot;n&quot;&gt;pipeline&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:api&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;do&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;plug&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:accepts&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&amp;quot;json&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;plug&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Guardian.Plug.VerifyAuthorization&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;plug&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Guardian.Plug.LoadResource&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;end&lt;/span&gt;
+
+  &lt;span class=&quot;n&quot;&gt;scope&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;/api/v1&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;PhoenixGuardian.Api.V&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;do&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;pipe_through&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;:api&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
+
+    &lt;span class=&quot;n&quot;&gt;resources&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;/users&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;UserController&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;end&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;The verify authorization plug will check the Authorization header for a token,
+and the LoadResource one will load any resource found there.&lt;/p&gt;
+
+&lt;p&gt;Ok, so now protecting your API endpoints is just like your web endpoints:&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-elixir&quot; data-lang=&quot;elixir&quot;&gt;&lt;span class=&quot;c1&quot;&gt;# web/controllers/api/v1/user_controller.ex&lt;/span&gt;
+&lt;span class=&quot;kd&quot;&gt;defmodule&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;PhoenixGuardian.Api.V&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;UserController&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;do&lt;/span&gt;
+  &lt;span class=&quot;kn&quot;&gt;use&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;PhoenixGuardian.Web&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:controller&lt;/span&gt;
+
+  &lt;span class=&quot;kn&quot;&gt;alias&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;PhoenixGuardian.User&lt;/span&gt;
+  &lt;span class=&quot;kn&quot;&gt;alias&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;PhoenixGuardian.SessionController&lt;/span&gt;
+
+  &lt;span class=&quot;n&quot;&gt;plug&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Guardian.Plug.EnsureSession&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;on_failure&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;SessionController&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:unauthenticated_api&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;plug&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:action&lt;/span&gt;
+
+  &lt;span class=&quot;c1&quot;&gt;# …&lt;/span&gt;
+  &lt;span class=&quot;kd&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;index&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;conn&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;_params&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;do&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;users&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Repo&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;all&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;User&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;json&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;conn&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;%{&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;users&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;current_user&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Guardian.Plug&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;current_resource&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;conn&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;})&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;end&lt;/span&gt;
+  &lt;span class=&quot;c1&quot;&gt;# …&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;end&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;The interaction with API clients is just the same as web session clients. I’ve
+used a different failure method in my SessionController, but other than this the
+token is fine.&lt;/p&gt;
+
+&lt;h4 id=&quot;how-do-i-get-my-token&quot;&gt;How do I get my token?&lt;/h4&gt;
+
+&lt;p&gt;So far, we’ve only used the &lt;code&gt;sign_in&lt;/code&gt; function on Guardian.Plug, and generated
+CSRF bound tokens. This is great for web pages but not so good for APIs. Lets
+have a look at how to get a token:&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-elixir&quot; data-lang=&quot;elixir&quot;&gt;&lt;span class=&quot;n&quot;&gt;user&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Repo&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;get&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;User&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:ok&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;jwt&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;full_claims&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Guardian&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;mint&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;user&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:api&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;This will generate a JWT that you can provide to your client, valid for the
+configured ttl. Once you get to the controller it’s the same API as the browser
+based authentication.&lt;/p&gt;
+
+&lt;p&gt;For bonus points, you can also use it for channel authentication!&lt;/p&gt;
+
+</description>
+        <pubDate>Tue, 30 Jun 2015 00:00:00 -0700</pubDate>
+        <link>http://hassox.github.io/elixir/guardian/2015/06/30/api-authentication-with-guardian.html</link>
+        <guid isPermaLink="true">http://hassox.github.io/elixir/guardian/2015/06/30/api-authentication-with-guardian.html</guid>
+        
+        
+        <category>elixir</category>
+        
+        <category>guardian</category>
+        
+      </item>
     
       <item>
         <title>Simple email password Authentication</title>
@@ -208,93 +295,6 @@ simple as possible.&lt;/p&gt;
         <pubDate>Mon, 29 Jun 2015 00:00:00 -0700</pubDate>
         <link>http://hassox.github.io/elixir/guardian/2015/06/29/simple-email-password-authentication.html</link>
         <guid isPermaLink="true">http://hassox.github.io/elixir/guardian/2015/06/29/simple-email-password-authentication.html</guid>
-        
-        
-        <category>elixir</category>
-        
-        <category>guardian</category>
-        
-      </item>
-    
-      <item>
-        <title>API Authentication with Guardian</title>
-        <description>&lt;p&gt;Over my last couple of posts I’ve talked about &lt;a href=&quot;http://hassox.github.io/elixir/guardian/2015/06/19/guardian-getting-started.html&quot;&gt;getting
-started&lt;/a&gt;,
-&lt;a href=&quot;http://hassox.github.io/elixir/guardian/2015/06/24/introducing-guardian-permissions.html&quot;&gt;permissions&lt;/a&gt;
-and &lt;a href=&quot;http://hassox.github.io/elixir/guardian/2015/06/29/simple-email-password-authentication.html&quot;&gt;simple email/password
-auth&lt;/a&gt;.
-It occured to me that I haven’t covered how to do an API authentication.&lt;/p&gt;
-
-&lt;p&gt;Part of the beauty of using JWT is that they have an expiry time built into
-them. In my examples I typically expire them in 30 days, but you can configure
-(or overwrite) this to be any value.&lt;/p&gt;
-
-&lt;p&gt;So we’ve added Guardian, created a user and we so far have the ability to create
-a ‘login’ where they’re logged into the session, but what about API endpoints.&lt;/p&gt;
-
-&lt;p&gt;One thing that Guardian can do easily is authenticate your application for API
-endpoints. Lets take a quick look at how that works.&lt;/p&gt;
-
-&lt;p&gt;In your router, add:&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-elixir&quot; data-lang=&quot;elixir&quot;&gt;&lt;span class=&quot;n&quot;&gt;pipeline&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:api&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;do&lt;/span&gt;
-    &lt;span class=&quot;n&quot;&gt;plug&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:accepts&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&amp;quot;json&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
-    &lt;span class=&quot;n&quot;&gt;plug&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Guardian.Plug.VerifyAuthorization&lt;/span&gt;
-    &lt;span class=&quot;n&quot;&gt;plug&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Guardian.Plug.LoadResource&lt;/span&gt;
-  &lt;span class=&quot;k&quot;&gt;end&lt;/span&gt;
-
-  &lt;span class=&quot;n&quot;&gt;scope&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;/api/v1&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;PhoenixGuardian.Api.V&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;do&lt;/span&gt;
-    &lt;span class=&quot;n&quot;&gt;pipe_through&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;:api&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
-
-    &lt;span class=&quot;n&quot;&gt;resources&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;/users&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;UserController&lt;/span&gt;
-  &lt;span class=&quot;k&quot;&gt;end&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;The verify authorization plug will check the Authorization header for a token,
-and the LoadResource one will load any resource found there.&lt;/p&gt;
-
-&lt;p&gt;Ok, so now protecting your API endpoints is just like your web endpoints:&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-elixir&quot; data-lang=&quot;elixir&quot;&gt;&lt;span class=&quot;c1&quot;&gt;# web/controllers/api/v1/user_controller.ex&lt;/span&gt;
-&lt;span class=&quot;kd&quot;&gt;defmodule&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;PhoenixGuardian.Api.V&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;UserController&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;do&lt;/span&gt;
-  &lt;span class=&quot;kn&quot;&gt;use&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;PhoenixGuardian.Web&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:controller&lt;/span&gt;
-
-  &lt;span class=&quot;kn&quot;&gt;alias&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;PhoenixGuardian.User&lt;/span&gt;
-  &lt;span class=&quot;kn&quot;&gt;alias&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;PhoenixGuardian.SessionController&lt;/span&gt;
-
-  &lt;span class=&quot;n&quot;&gt;plug&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Guardian.Plug.EnsureSession&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;on_failure&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;SessionController&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:unauthenticated_api&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
-  &lt;span class=&quot;n&quot;&gt;plug&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:action&lt;/span&gt;
-
-  &lt;span class=&quot;c1&quot;&gt;# …&lt;/span&gt;
-  &lt;span class=&quot;kd&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;index&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;conn&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;_params&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;do&lt;/span&gt;
-    &lt;span class=&quot;n&quot;&gt;users&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Repo&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;all&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;User&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-    &lt;span class=&quot;n&quot;&gt;json&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;conn&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;%{&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;users&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;current_user&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Guardian.Plug&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;current_resource&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;conn&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;})&lt;/span&gt;
-  &lt;span class=&quot;k&quot;&gt;end&lt;/span&gt;
-  &lt;span class=&quot;c1&quot;&gt;# …&lt;/span&gt;
-&lt;span class=&quot;k&quot;&gt;end&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;The interaction with API clients is just the same as web session clients. I’ve
-used a different failure method in my SessionController, but other than this the
-token is fine.&lt;/p&gt;
-
-&lt;h4 id=&quot;how-do-i-get-my-token&quot;&gt;How do I get my token?&lt;/h4&gt;
-
-&lt;p&gt;So far, we’ve only used the &lt;code&gt;sign_in&lt;/code&gt; function on Guardian.Plug, and generated
-CSRF bound tokens. This is great for web pages but not so good for APIs. Lets
-have a look at how to get a token:&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-elixir&quot; data-lang=&quot;elixir&quot;&gt;&lt;span class=&quot;n&quot;&gt;user&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Repo&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;get&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;User&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:ok&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;jwt&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;full_claims&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Guardian&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;mint&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;user&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:api&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;This will generate a JWT that you can provide to your client, valid for the
-configured ttl. Once you get to the controller it’s the same API as the browser
-based authentication.&lt;/p&gt;
-
-&lt;p&gt;For bonus points, you can also use it for channel authentication!&lt;/p&gt;
-
-</description>
-        <pubDate>Mon, 29 Jun 2015 00:00:00 -0700</pubDate>
-        <link>http://hassox.github.io/elixir/guardian/2015/06/29/api-authentication-with-guardian.html</link>
-        <guid isPermaLink="true">http://hassox.github.io/elixir/guardian/2015/06/29/api-authentication-with-guardian.html</guid>
         
         
         <category>elixir</category>
