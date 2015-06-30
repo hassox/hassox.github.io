@@ -1,5 +1,5 @@
 ---
-  title: Simple email password Authentication
+  title: API Authentication with Guardian
   date: 2015-06-29
   categories:
     - elixir
