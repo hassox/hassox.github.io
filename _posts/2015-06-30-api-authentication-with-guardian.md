@@ -83,5 +83,11 @@ This will generate a JWT that you can provide to your client, valid for the
 configured ttl. Once you get to the controller it's the same API as the browser
 based authentication.
 
+Your client can hand it in via the "Authorization" header.
+
+{% highlight ruby %}
+Authorization: <jwt>
+{% endhighlight %}
+
 For bonus points, you can also use it for channel authentication!
 
