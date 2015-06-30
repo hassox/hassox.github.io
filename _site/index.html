@@ -30,6 +30,226 @@
     
     <article>
       <header>
+        <h2><a href="/elixir/guardian/2015/06/29/simple-email-password-authentication.html">Simple email password Authentication</a></h2>
+        <p><time datetime="2015-06-29T00:00:00-07:00">Jun 29, 2015</time> • elixir and guardian</p>
+      </header>
+      <div>
+<p>I’ve been head down with thinking about Guardian and how the far out cases it
+could be used for will work together. Service2Service, Single sign on, OAuth
+provider, stuff like that. It occured to me that there is a bunch of really easy
+to handle things that from the outside might look a little daunting. With that
+in mind, I wanted to walk through setting up an application for simple,
+every-day email/password authentication. <em>Almost</em> the simplest auth setup
+around.</p>
+
+<p>A quick top level overview for the uninitiated. Guardian is an authentication
+library that uses JSON Web Tokens (JWT) as it’s base unit of authentication.
+It’s a signed collection of <em>claims</em> that can be used in a session or an
+Authorization header. They’re great, but this post isn’t about them.</p>
+
+<p>I don’t want to get <em>too</em> bogged down in how to create a User resource. This is
+going to vary for you, but if you want to see an example of setting up a simple
+User model with email/username using BCrypt you can checkout the <a href="https://github.com/hassox/phoenix_guardian/blob/master/web/models/user.ex">one I use in my example application</a>.</p>
+
+<p>This uses a simple email/encrypted password, where the password is hashed with
+BCrypt (using
+<a href="https://github.com/elixircnx/comeoni://github.com/elixircnx/comeonin">Comeonin</a>).</p>
+
+<p>So lets assume that you have <a href="https://github.com/hassox/phoenix_guardian/blob/master/web/controllers/user_controller.ex">created a
+user</a> and you’re ready to get going. Lets get setup.</p>
+
+<h4 id="installing-guardian">Installing Guardian</h4>
+
+<p>config.exs</p>
+
+<p>```elixir
+config :joken, config_module: Guardian.JWT</p>
+
+<p>config :guardian, Guardian,
+      issuer: “PhoenixGuardian”,
+      ttl: { 10, :days },
+      verify_issuer: true,
+      secret_key: “lksdjowiurowieurlkjsdlwwer”,
+      serializer: PhoenixGuardian.GuardianSerializer
+```</p>
+
+<p>web/routes.ex</p>
+
+<p>```elixir
+defmodule PhoenixGuardian.Router do
+  use PhoenixGuardian.Web, :router</p>
+
+<p>pipeline :browser_session do
+    plug Guardian.Plug.VerifySession
+    plug Guardian.Plug.LoadResource
+  end</p>
+
+<p>scope “/”, PhoenixGuardian do
+    pipe_through [:browser, :browser_session] # Use the default browser stack</p>
+
+<pre><code>get "/login", SessionController, :new, as: :login
+post "/login", SessionController, :create, as: :login
+delete "/logout", SessionController, :delete, as: :logout
+get "/logout", SessionController, :delete, as: :logout
+
+resources "/users", UserController   end ```
+</code></pre>
+
+<p>We’ve setup a pipeline for authenticating browser requests (i.e. requests from
+the session). Note that this will not actually kick anyone from the app, that
+will come later.</p>
+
+<p>You’ll need a serializer. I put mine in lib/phoenix_guardian/guardian_serializer.ex</p>
+
+<p>```elixir
+defmodule PhoenixGuardian.GuardianSerializer do
+  @behaviour Guardian.Serializer</p>
+
+<p>alias PhoenixGuardian.Repo
+  alias PhoenixGuardian.User</p>
+
+<p>def for_token(user = %User{}), do: { :ok, “User:#{user.id}” }
+  def for_token(_), do: { :error, “Unknown resource type” }</p>
+
+<p>def from_token(“User:” &lt;&gt; id), do: { :ok, Repo.get(User, String.to_integer(id)) }
+  def from_token(thing), do: { :error, “Unknown resource type” }
+end
+```</p>
+
+<p>The serializer just fetches your resource, or given a resource, it serializes it
+into the token.</p>
+
+<h4 id="logging-in">Logging in</h4>
+
+<p>We added the SessionController into the routes. This just provides the login
+form, and handles the result. It is <em>also</em> where the magic happens. Inside this
+controller, you’re issued a JWT into your session. I’ve tied this one to the
+CSRF token so that it’s only good for the life of the session.</p>
+
+<p>```elixir
+defmodule PhoenixGuardian.SessionController do
+  use PhoenixGuardian.Web, :controller</p>
+
+<p>alias PhoenixGuardian.User</p>
+
+<p>def new(conn, params) do
+    changeset = User.login_changeset(%User{})
+    render(conn, PhoenixGuardian.SessionView, “new.html”, changeset: changeset)
+  end</p>
+
+<p>def create(conn, params = %{}) do
+    user = Repo.one(UserQuery.by_email(params[“user”][“email”] || “”))
+    if user do
+      changeset = User.login_changeset(user, params[“user”])
+      if changeset.valid? do
+        conn
+        |&gt; put_flash(:info, “Logged in.”)
+        |&gt; Guardian.Plug.sign_in(user, :csrf)
+        |&gt; redirect(to: user_path(conn, :index))
+      else
+        render(conn, “new.html”, changeset: changeset)
+      end
+    else
+      changeset = User.login_changeset(%User{}) |&gt; Ecto.Changeset.add_error(:login, “not found”)
+      render(conn, “new.html”, changeset: changeset)
+    end
+  end</p>
+
+<p>def delete(conn, _params) do
+    Guardian.Plug.sign_out(conn)
+    |&gt; put_flash(:info, “Logged out successfully.”)
+    |&gt; redirect(to: “/”)
+  end
+end
+```</p>
+
+<p>There’s a couple of methods, but most of what’s happening is straight forward.</p>
+
+<p>A user lands on the “new” action and we generate a form. We use the
+<code>User.login_changeset</code> with the form. It’s a simple changeset from the <a href="https://github.com/hassox/phoenix_guardian/blob/master/web/models/user.ex">user.ex model</a>:</p>
+
+<p>```elixir
+def login_changeset(model), do: model |&gt; cast(%{}, ~w(), ~w(email password))</p>
+
+<p>def login_changeset(model, params) do
+  model
+  |&gt; cast(params, ~w(email password), ~w())
+  |&gt; validate_password
+end
+```</p>
+
+<p>This will just give us a nice error message and interface for checking the
+password.</p>
+
+<p>Once the form is posted to the <code>create</code> method, we’ll check the
+<code>login_changeset</code> and make sure it’s a good email/pass match.</p>
+
+<p>Once there, we do the ‘logging in’ part.</p>
+
+<p><code>elixir
+  |&gt; Guardian.Plug.sign_in(user, :csrf)
+</code></p>
+
+<p>This line invokes your serializer, generates your token with an expiry of what
+you configured (10 days for this example), pushes it into the session and makes
+it available on the request for further use. The <code>:csrf</code> option tells Guardian
+to bind the token to the current csrf so it’s only good for the current session.
+You could use ‘token’ or some other name to give a type (or aud for JWT fans) to
+the token if you don’t want this behavior.</p>
+
+<h4 id="protecting-your-urls">Protecting your urls</h4>
+
+<p>So, now we have a logged in user, lets protect something.</p>
+
+<p>In the user_controller.ex</p>
+
+<p>```elixir
+defmodule PhoenixGuardian.UserController do
+  use PhoenixGuardian.Web, :controller</p>
+
+<p>alias PhoenixGuardian.User
+  alias PhoenixGuardian.SessionController
+  alias Guardian.Plug.EnsureSession</p>
+
+<p>plug EnsureSession, %{ on_failure: { SessionController, :new } } when not action in [:new, :create]</p>
+
+<p># …</p>
+
+<p>def edit(conn, params) do
+    user = Guardian.Plug.current_resource(conn)
+    changeset = User.update_changeset(user)
+    render(conn, “edit.html”, user: user, changeset: changeset)
+  end</p>
+
+<p># …</p>
+
+<p>```</p>
+
+<p>I’ve cut most of it, but you can see in the edit action how we fetch the currently logged in user.</p>
+
+<p>This illustrates a very simple use of Guardian. From here there are a lot of
+places to go.</p>
+
+<ul>
+  <li>api vs session credentials</li>
+  <li>custom ‘claims’ in the JWT</li>
+  <li>permissions</li>
+  <li>hooks</li>
+  <li>mashups with existing frameworks</li>
+</ul>
+
+<p>There’s a lot of places to go. I want to make sure the road to getting in is a
+simple as possible.</p>
+
+
+      </div>
+      <footer>
+        <p><a href="/elixir/guardian/2015/06/29/simple-email-password-authentication.html">read more &raquo;</a></p>
+      </footer>
+    </article>
+    
+    <article>
+      <header>
         <h2><a href="/elixir/guardian/2015/06/24/introducing-guardian-permissions.html">Introducing Guardian Permissions</a></h2>
         <p><time datetime="2015-06-24T00:00:00-07:00">Jun 24, 2015</time> • elixir and guardian</p>
       </header>
