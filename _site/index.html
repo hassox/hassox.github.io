@@ -94,8 +94,8 @@ token is fine.</p>
 
 <h4 id="how-do-i-get-my-token">How do I get my token?</h4>
 
-<p>So far, we’ve only used the <code>sign_in</code> function on Guardian.Plug, and generated
-CSRF bound tokens. This is great for web pages but not so good for APIs. Lets
+<p>So far, we’ve only used the <code>sign_in</code> function on Guardian.Plug.
+This is great for web pages but not quite enough for APIs. Lets
 have a look at how to get a token:</p>
 
 <div class="highlight"><pre><code class="language-elixir" data-lang="elixir"><span class="n">user</span> <span class="p">=</span> <span class="nc">Repo</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="nc">User</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
@@ -124,6 +124,12 @@ based authentication.</p>
         <p><time datetime="2015-06-29T00:00:00-07:00">Jun 29, 2015</time> • elixir and guardian</p>
       </header>
       <div>
+<p>Update: With the arrival or masked CSRF keys in Phoenix, I’ve re-thought the
+CSRF protection baked into Guardian. Ultimately it doesn’t provide the kinds of
+assurances I originally had in mind so this feature has been removed.</p>
+
+<hr />
+
 <p>I’ve been head down with thinking about Guardian and how the far out cases it
 could be used for will work together. Service2Service, Single sign on, OAuth
 provider, stuff like that. It occured to me that there is a bunch of really easy
@@ -208,8 +214,7 @@ into the token.</p>
 
 <p>We added the SessionController into the routes. This just provides the login
 form, and handles the result. It is <em>also</em> where the magic happens. Inside this
-controller, you’re issued a JWT into your session. I’ve tied this one to the
-CSRF token so that it’s only good for the life of the session.</p>
+controller, you’re issued a JWT into your session.</p>
 
 <div class="highlight"><pre><code class="language-elixir" data-lang="elixir"><span class="kd">defmodule</span> <span class="nc">PhoenixGuardian.SessionController</span> <span class="k">do</span>
   <span class="kn">use</span> <span class="nc">PhoenixGuardian.Web</span><span class="p">,</span> <span class="ss">:controller</span>
@@ -228,7 +233,7 @@ CSRF token so that it’s only good for the life of the session.</p>
       <span class="k">if</span> <span class="n">changeset</span><span class="p">.</span><span class="n">valid?</span> <span class="k">do</span>
         <span class="n">conn</span>
         <span class="o">|&gt;</span> <span class="n">put_flash</span><span class="p">(</span><span class="ss">:info</span><span class="p">,</span> <span class="s2">&quot;Logged in.&quot;</span><span class="p">)</span>
-        <span class="o">|&gt;</span> <span class="nc">Guardian.Plug</span><span class="p">.</span><span class="n">sign_in</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="ss">:csrf</span><span class="p">)</span>
+        <span class="o">|&gt;</span> <span class="nc">Guardian.Plug</span><span class="p">.</span><span class="n">sign_in</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="ss">:token</span><span class="p">)</span>
         <span class="o">|&gt;</span> <span class="n">redirect</span><span class="p">(</span><span class="ss">to</span><span class="p">:</span> <span class="n">user_path</span><span class="p">(</span><span class="n">conn</span><span class="p">,</span> <span class="ss">:index</span><span class="p">))</span>
       <span class="k">else</span>
         <span class="n">render</span><span class="p">(</span><span class="n">conn</span><span class="p">,</span> <span class="s2">&quot;new.html&quot;</span><span class="p">,</span> <span class="ss">changeset</span><span class="p">:</span> <span class="n">changeset</span><span class="p">)</span>
@@ -267,14 +272,13 @@ password.</p>
 
 <p>Once there, we do the ‘logging in’ part.</p>
 
-<div class="highlight"><pre><code class="language-elixir" data-lang="elixir"><span class="o">|&gt;</span> <span class="nc">Guardian.Plug</span><span class="p">.</span><span class="n">sign_in</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="ss">:csrf</span><span class="p">)</span></code></pre></div>
+<div class="highlight"><pre><code class="language-elixir" data-lang="elixir"><span class="o">|&gt;</span> <span class="nc">Guardian.Plug</span><span class="p">.</span><span class="n">sign_in</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="ss">:token</span><span class="p">)</span></code></pre></div>
 
 <p>This line invokes your serializer, generates your token with an expiry of what
 you configured (10 days for this example), pushes it into the session and makes
-it available on the request for further use. The <code>:csrf</code> option tells Guardian
-to bind the token to the current csrf so it’s only good for the current session.
-You could use ‘token’ or some other name to give a type (or aud for JWT fans) to
-the token if you don’t want this behavior.</p>
+it available on the request for further use. The <code>:token</code> option is essentially
+a label to identify the type of token (used in the <code>:aud</code> field). This can be
+anything but should be consistent.</p>
 
 <h4 id="protecting-your-urls">Protecting your urls</h4>
 
@@ -449,6 +453,12 @@ different set, just deprecate the first one and create a new one. No problem.</p
         <p><time datetime="2015-06-19T00:00:00-07:00">Jun 19, 2015</time> • elixir and guardian</p>
       </header>
       <div>
+<p>Update: With the arrival or masked CSRF keys in Phoenix, I’ve re-thought the
+CSRF protection baked into Guardian. Ultimately it doesn’t provide the kinds of
+assurances I originally had in mind so this feature has been removed.</p>
+
+<hr />
+
 <p>For some reason, the first thing I look for when I’m building an application is
 authentication. For me things are interesting when there’s something going on on
 my apps, and that usually means letting people login.</p>
@@ -504,7 +514,7 @@ Screw language differences.</p>
 <div class="highlight"><pre><code class="language-elixir" data-lang="elixir"><span class="kd">defp</span> <span class="n">deps</span> <span class="k">do</span>
   <span class="p">[</span>
     <span class="c1"># ...</span>
-    <span class="p">{</span><span class="ss">:guardian</span><span class="p">,</span> <span class="s2">&quot;~&gt;0.1.0&quot;</span><span class="p">},</span>
+    <span class="p">{</span><span class="ss">:guardian</span><span class="p">,</span> <span class="s2">&quot;~&gt;0.4.0&quot;</span><span class="p">},</span>
     <span class="c1"># ...</span>
   <span class="p">]</span>
 <span class="k">end</span></code></pre></div>
@@ -512,9 +522,7 @@ Screw language differences.</p>
 <p>Guardian relies on <a href="https://github.com/bryanjos/joken">Joken</a> for it’s JWTs. Guardian will bring it in, but you’ll
 need to configure it.</p>
 
-<div class="highlight"><pre><code class="language-elixir" data-lang="elixir"><span class="n">config</span> <span class="ss">:joken</span><span class="p">,</span>
-       <span class="ss">secret_key</span><span class="p">:</span> <span class="s2">&quot;lksjdflksjfowieruwoieruowier&quot;</span><span class="p">,</span>
-       <span class="ss">json_module</span><span class="p">:</span> <span class="nc">Guardian.JWT</span>
+<div class="highlight"><pre><code class="language-elixir" data-lang="elixir"><span class="n">config</span> <span class="ss">:joken</span><span class="p">,</span> <span class="ss">config_module</span><span class="p">:</span> <span class="nc">Guardian.JWT</span>
 
 <span class="n">config</span> <span class="ss">:guardian</span><span class="p">,</span> <span class="nc">Guardian</span><span class="p">,</span>
       <span class="ss">issuer</span><span class="p">:</span> <span class="s2">&quot;MyApp&quot;</span><span class="p">,</span>
@@ -620,7 +628,7 @@ created our pipelines, how to sign in?</p>
 
     <span class="n">conn</span>
     <span class="o">|&gt;</span> <span class="n">put_flash</span><span class="p">(</span><span class="ss">:info</span><span class="p">,</span> <span class="s2">&quot;User created successfully.&quot;</span><span class="p">)</span>
-    <span class="o">|&gt;</span> <span class="nc">Guardian.Plug</span><span class="p">.</span><span class="n">sign_in</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="ss">:csrf</span><span class="p">)</span>
+    <span class="o">|&gt;</span> <span class="nc">Guardian.Plug</span><span class="p">.</span><span class="n">sign_in</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="ss">:token</span><span class="p">)</span>
     <span class="o">|&gt;</span> <span class="n">redirect</span><span class="p">(</span><span class="ss">to</span><span class="p">:</span> <span class="n">user_path</span><span class="p">(</span><span class="n">conn</span><span class="p">,</span> <span class="ss">:index</span><span class="p">))</span>
   <span class="k">else</span>
     <span class="n">render</span><span class="p">(</span><span class="n">conn</span><span class="p">,</span> <span class="s2">&quot;new.html&quot;</span><span class="p">,</span> <span class="ss">changeset</span><span class="p">:</span> <span class="n">changeset</span><span class="p">)</span>
@@ -649,8 +657,7 @@ works on my page type of auth.</p>
 
 <p><code>some_html.html</code></p>
 
-<div class="highlight"><pre><code class="language-erb" data-lang="erb"><span class="x">&lt;meta name=&#39;csrf_token&#39; content=&#39;</span><span class="cp">&lt;%=</span> <span class="no">Plug</span><span class="o">.</span><span class="n">CSRFProtection</span><span class="o">.</span><span class="n">get_csrf_token</span> <span class="cp">%&gt;</span><span class="x">&#39;&gt;</span>
-<span class="cp">&lt;%=</span> <span class="k">if</span> <span class="no">Guardian</span><span class="o">.</span><span class="n">Plug</span><span class="o">.</span><span class="n">current_token</span><span class="p">(</span><span class="vi">@conn</span><span class="p">)</span> <span class="k">do</span> <span class="cp">%&gt;</span><span class="x"></span>
+<div class="highlight"><pre><code class="language-erb" data-lang="erb"><span class="cp">&lt;%=</span> <span class="k">if</span> <span class="no">Guardian</span><span class="o">.</span><span class="n">Plug</span><span class="o">.</span><span class="n">current_token</span><span class="p">(</span><span class="vi">@conn</span><span class="p">)</span> <span class="k">do</span> <span class="cp">%&gt;</span><span class="x"></span>
 <span class="x">  &lt;meta name=&#39;guardian_token&#39; content=&quot;</span><span class="cp">&lt;%=</span> <span class="no">Guardian</span><span class="o">.</span><span class="n">Plug</span><span class="o">.</span><span class="n">current_token</span><span class="p">(</span><span class="vi">@conn</span><span class="p">)</span> <span class="cp">%&gt;</span><span class="x">&quot;&gt;</span>
 <span class="cp">&lt;%</span> <span class="k">end</span> <span class="cp">%&gt;</span><span class="x"></span></code></pre></div>
 
@@ -663,9 +670,8 @@ dump them on the page as a way to pass it to the javascript client.</p>
 <span class="nx">socket</span><span class="p">.</span><span class="nx">connect</span><span class="p">();</span>
 
 <span class="kd">let</span> <span class="nx">guardianToken</span> <span class="o">=</span> <span class="nx">jQuery</span><span class="p">(</span><span class="s1">&#39;meta[name=&quot;guardian_token&quot;]&#39;</span><span class="p">).</span><span class="nx">attr</span><span class="p">(</span><span class="s1">&#39;content&#39;</span><span class="p">);</span>
-<span class="kd">let</span> <span class="nx">csrfToken</span> <span class="o">=</span> <span class="nx">jQuery</span><span class="p">(</span><span class="s1">&#39;meta[name=&quot;csrf_token&quot;]&#39;</span><span class="p">).</span><span class="nx">attr</span><span class="p">(</span><span class="s1">&#39;content&#39;</span><span class="p">);</span>
 
-<span class="kd">let</span> <span class="nx">chan</span> <span class="o">=</span> <span class="nx">socket</span><span class="p">.</span><span class="nx">chan</span><span class="p">(</span><span class="s2">&quot;pings&quot;</span><span class="p">,</span> <span class="p">{</span> <span class="nx">guardian_token</span><span class="o">:</span> <span class="nx">guardianToken</span><span class="p">,</span> <span class="nx">csrf_token</span><span class="o">:</span> <span class="nx">csrfToken</span> <span class="p">});</span></code></pre></div>
+<span class="kd">let</span> <span class="nx">chan</span> <span class="o">=</span> <span class="nx">socket</span><span class="p">.</span><span class="nx">chan</span><span class="p">(</span><span class="s2">&quot;pings&quot;</span><span class="p">,</span> <span class="p">{</span> <span class="nx">guardian_token</span><span class="o">:</span> <span class="nx">guardianToken</span> <span class="p">});</span></code></pre></div>
 
 <p><code>phoenix_guardian/user_channel.ex</code></p>
 
@@ -688,8 +694,6 @@ dump them on the page as a way to pass it to the javascript client.</p>
 <p>When Guardian finds a valid token, it extracts the claims and the resource, and
 calls <code>join</code> with them in the map. The keys to pattern match on for
 authenticated joins are <code>claims</code> and <code>resource</code>.</p>
-
-<p>If you’re not using CSRF just don’t pass it into the join.</p>
 
 <p>When Guardian cannot verify the token, it will call <code>handle_guardian_auth_failure</code> with the reason it failed.</p>
 

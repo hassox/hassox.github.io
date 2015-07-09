@@ -6,6 +6,12 @@
     - guardian
 ---
 
+Update: With the arrival or masked CSRF keys in Phoenix, I've re-thought the
+CSRF protection baked into Guardian. Ultimately it doesn't provide the kinds of
+assurances I originally had in mind so this feature has been removed.
+
+--------------------------------------------------------
+
 I've been head down with thinking about Guardian and how the far out cases it
 could be used for will work together. Service2Service, Single sign on, OAuth
 provider, stuff like that. It occured to me that there is a bunch of really easy
@@ -96,8 +102,7 @@ into the token.
 
 We added the SessionController into the routes. This just provides the login
 form, and handles the result. It is _also_ where the magic happens. Inside this
-controller, you're issued a JWT into your session. I've tied this one to the
-CSRF token so that it's only good for the life of the session.
+controller, you're issued a JWT into your session.
 
 {% highlight elixir %}
 defmodule PhoenixGuardian.SessionController do
@@ -117,7 +122,7 @@ defmodule PhoenixGuardian.SessionController do
       if changeset.valid? do
         conn
         |> put_flash(:info, "Logged in.")
-        |> Guardian.Plug.sign_in(user, :csrf)
+        |> Guardian.Plug.sign_in(user, :token)
         |> redirect(to: user_path(conn, :index))
       else
         render(conn, "new.html", changeset: changeset)
@@ -160,15 +165,14 @@ Once the form is posted to the `create` method, we'll check the
 Once there, we do the 'logging in' part.
 
 {% highlight elixir %}
-  |> Guardian.Plug.sign_in(user, :csrf)
+  |> Guardian.Plug.sign_in(user, :token)
 {% endhighlight %}
 
 This line invokes your serializer, generates your token with an expiry of what
 you configured (10 days for this example), pushes it into the session and makes
-it available on the request for further use. The `:csrf` option tells Guardian
-to bind the token to the current csrf so it's only good for the current session.
-You could use 'token' or some other name to give a type (or aud for JWT fans) to
-the token if you don't want this behavior.
+it available on the request for further use. The `:token` option is essentially
+a label to identify the type of token (used in the `:aud` field). This can be
+anything but should be consistent.
 
 #### Protecting your urls
 

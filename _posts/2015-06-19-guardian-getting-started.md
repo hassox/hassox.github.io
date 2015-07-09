@@ -6,6 +6,12 @@
     - guardian
 ---
 
+Update: With the arrival or masked CSRF keys in Phoenix, I've re-thought the
+CSRF protection baked into Guardian. Ultimately it doesn't provide the kinds of
+assurances I originally had in mind so this feature has been removed.
+
+--------------------------------------------------------
+
 For some reason, the first thing I look for when I'm building an application is
 authentication. For me things are interesting when there's something going on on
 my apps, and that usually means letting people login.
@@ -61,7 +67,7 @@ Add Guardian to your mix.deps:
 defp deps do
   [
     # ...
-    {:guardian, "~>0.1.0"},
+    {:guardian, "~>0.4.0"},
     # ...
   ]
 end
@@ -71,9 +77,7 @@ Guardian relies on [Joken](https://github.com/bryanjos/joken) for it's JWTs. Gua
 need to configure it.
 
 {% highlight elixir %}
-config :joken,
-       secret_key: "lksjdflksjfowieruwoieruowier",
-       json_module: Guardian.JWT
+config :joken, config_module: Guardian.JWT
 
 config :guardian, Guardian,
       issuer: "MyApp",
@@ -184,7 +188,7 @@ def create(conn, %{"user" => user_params}) do
 
     conn
     |> put_flash(:info, "User created successfully.")
-    |> Guardian.Plug.sign_in(user, :csrf)
+    |> Guardian.Plug.sign_in(user, :token)
     |> redirect(to: user_path(conn, :index))
   else
     render(conn, "new.html", changeset: changeset)
@@ -217,7 +221,6 @@ Ok so, I did say you could use this for channels right. Here it is:
 `some_html.html`
 
 {% highlight erb %}
-<meta name='csrf_token' content='<%= Plug.CSRFProtection.get_csrf_token %>'>
 <%= if Guardian.Plug.current_token(@conn) do %>
   <meta name='guardian_token' content="<%= Guardian.Plug.current_token(@conn) %>">
 <% end %>
@@ -233,9 +236,8 @@ let socket = new Socket("/ws");
 socket.connect();
 
 let guardianToken = jQuery('meta[name="guardian_token"]').attr('content');
-let csrfToken = jQuery('meta[name="csrf_token"]').attr('content');
 
-let chan = socket.chan("pings", { guardian_token: guardianToken, csrf_token: csrfToken });
+let chan = socket.chan("pings", { guardian_token: guardianToken });
 {% endhighlight %}
 
 `phoenix_guardian/user_channel.ex`
@@ -261,8 +263,6 @@ end
 When Guardian finds a valid token, it extracts the claims and the resource, and
 calls `join` with them in the map. The keys to pattern match on for
 authenticated joins are `claims` and `resource`.
-
-If you're not using CSRF just don't pass it into the join.
 
 When Guardian cannot verify the token, it will call `handle_guardian_auth_failure` with the reason it failed.
 

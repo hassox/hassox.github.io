@@ -70,8 +70,8 @@ token is fine.
 
 #### How do I get my token?
 
-So far, we've only used the `sign_in` function on Guardian.Plug, and generated
-CSRF bound tokens. This is great for web pages but not so good for APIs. Lets
+So far, we've only used the `sign_in` function on Guardian.Plug.
+This is great for web pages but not quite enough for APIs. Lets
 have a look at how to get a token:
 
 {% highlight elixir %}
