@@ -30,6 +30,32 @@
     
     <article>
       <header>
+        <h2><a href="/elixir/guardian/2015/07/09/removing-csrf-token-type.html">Removing CSRF token type</a></h2>
+        <p><time datetime="2015-07-09T00:00:00-07:00">Jul 9, 2015</time> • elixir and guardian</p>
+      </header>
+      <div>
+<p>Recently masked CSRF tokens have shown up in Phoenix. Masked CSRF tokens are an
+important feature to prevent against the <a href="http://breachattack.com/">BREACH attack</a>.</p>
+
+<p>Unfortunately masked tokens are incompatible with the way Guardian was using
+them. It’s not all bad though, working through it, it turns out that the way
+Guardian was putting the CSRF into the JWT wasn’t actually buying much in terms
+of security. Since you need both pieces of information to connect to a channel,
+you essentially have the lock and key and can reply the token.</p>
+
+<p>After reviewing it I’ve decided to remove the functionality from Guardian. From
+here it’s clear that there needs to be a more robust solution for revoking
+tokens. That’ll be the focus of the next round of work on Guardian.</p>
+
+
+      </div>
+      <footer>
+        <p><a href="/elixir/guardian/2015/07/09/removing-csrf-token-type.html">read more &raquo;</a></p>
+      </footer>
+    </article>
+    
+    <article>
+      <header>
         <h2><a href="/elixir/guardian/2015/06/30/api-authentication-with-guardian.html">API Authentication with Guardian</a></h2>
         <p><time datetime="2015-06-30T00:00:00-07:00">Jun 30, 2015</time> • elixir and guardian</p>
       </header>

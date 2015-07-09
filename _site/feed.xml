@@ -5,9 +5,35 @@
     <description>Tech and Stuff</description>
     <link>http://hassox.github.io</link>
     <atom:link href="http://hassox.github.iofeed.xml" rel="self" type="application/rss+xml" />
-    <pubDate>Thu, 09 Jul 2015 08:46:41 -0700</pubDate>
-    <lastBuildDate>Thu, 09 Jul 2015 08:46:41 -0700</lastBuildDate>
+    <pubDate>Thu, 09 Jul 2015 08:52:14 -0700</pubDate>
+    <lastBuildDate>Thu, 09 Jul 2015 08:52:14 -0700</lastBuildDate>
     <generator>Jekyll v2.5.3</generator>
+    
+      <item>
+        <title>Removing CSRF token type</title>
+        <description>&lt;p&gt;Recently masked CSRF tokens have shown up in Phoenix. Masked CSRF tokens are an
+important feature to prevent against the &lt;a href=&quot;http://breachattack.com/&quot;&gt;BREACH attack&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;Unfortunately masked tokens are incompatible with the way Guardian was using
+them. It’s not all bad though, working through it, it turns out that the way
+Guardian was putting the CSRF into the JWT wasn’t actually buying much in terms
+of security. Since you need both pieces of information to connect to a channel,
+you essentially have the lock and key and can reply the token.&lt;/p&gt;
+
+&lt;p&gt;After reviewing it I’ve decided to remove the functionality from Guardian. From
+here it’s clear that there needs to be a more robust solution for revoking
+tokens. That’ll be the focus of the next round of work on Guardian.&lt;/p&gt;
+</description>
+        <pubDate>Thu, 09 Jul 2015 00:00:00 -0700</pubDate>
+        <link>http://hassox.github.io/elixir/guardian/2015/07/09/removing-csrf-token-type.html</link>
+        <guid isPermaLink="true">http://hassox.github.io/elixir/guardian/2015/07/09/removing-csrf-token-type.html</guid>
+        
+        
+        <category>elixir</category>
+        
+        <category>guardian</category>
+        
+      </item>
     
       <item>
         <title>API Authentication with Guardian</title>
