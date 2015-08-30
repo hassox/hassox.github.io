@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <!-- Niklas Buschmann 2015 MIT <http://github.com/niklasbuschmann> -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="utf-8">
+    
+    <meta name="description" content="Tech and Stuff">
+    <title> Guardian Hooks › Stuff 'n Things</title>
+    <link rel="canonical" href="http://hassox.github.io/elixir/guardian/2015/09/30/guardian-hooks.html">
+    <link href="/main.css" rel="stylesheet" type="text/css">
+    <link href='//fonts.googleapis.com/css?family=Source+Sans+Pro:200,300,400,600,700,200italic,300italic,400italic,600italic,700italic' rel='stylesheet' type='text/css'>
+    <link href='//fonts.googleapis.com/css?family=Gentium+Basic:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
+    <link href='//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css' rel='stylesheet' type='text/css'>
+    <link rel="alternate" type="application/rss+xml" title="Stuff 'n Things &raquo; Feed" href="/feed.xml">
+    <script src="//hassox.disqus.com/embed.js" async></script>
+    
+  </head>
+  <body>
+    <header>
+      <h1><a href="/">Stuff 'n Things</a></h1>
+      <nav>
+        <ul>
+          <li><a href="/">Home</a></li><li><a href="/archive.html">Archive</a></li>
+        </ul>
+      </nav>
+    </header>
+    
+    
+    <article>
+      <header>
+        <h2><a href="/elixir/guardian/2015/09/30/guardian-hooks.html">Guardian Hooks</a></h2>
+        <p><time datetime="2015-09-30T00:00:00-07:00">Sep 30, 2015</time> • elixir and guardian</p>
+      </header>
+      <div>
+<p>Some time ago I introduced Hooks to Guardian. Hooks are a mechanism for you to
+plug-in to lifecycle of authentication. These can be useful to extend or
+customize the behaviour of Guardian within your application.</p>
+
+<p>A Guardian.Hook is implemented as a behvaiour with default implementations of
+each callback so you only need to implement what you’re interested in. The
+available hooks are:</p>
+
+<div class="highlight"><pre><code class="language-text" data-lang="text">defcallback before_encode_and_sign(resource :: term, type :: atom, claims :: Map)
+defcallback after_encode_and_sign(resource :: term, type :: atom, claims :: Map, token :: String.t)
+defcallback after_sign_in(conn :: Plug.Conn.t, location :: atom | nil)
+defcallback before_sign_out(conn :: Plug.Conn.t, location :: atom | nil)
+defcallback on_verify(claims :: Map, jwt :: String.t)
+defcallback on_revoke(claims :: Map, jwt :: String.t)</code></pre></div>
+
+<p>To create your own module just use the Guardian.Hooks module.</p>
+
+<div class="highlight"><pre><code class="language-elixir" data-lang="elixir"><span class="kd">defmodule</span> <span class="nc">MyHooks</span> <span class="k">do</span>
+  <span class="kn">use</span> <span class="nc">Guardian.Hooks</span>
+
+  <span class="kd">def</span> <span class="n">before_encode_and_sign</span><span class="p">(</span><span class="n">resource</span><span class="p">,</span> <span class="n">type</span><span class="p">,</span> <span class="n">claims</span><span class="p">)</span> <span class="k">do</span>
+    <span class="c1"># to keep this as an authenticated token, return { :ok, { resource, type, claims }</span>
+    <span class="c1"># to fail and prevent the mint from happening return { :error, :reason }</span>
+  <span class="k">end</span>
+<span class="k">end</span></code></pre></div>
+
+<h3 id="beforeencodeandsign">before_encode_and_sign</h3>
+
+<p>Runs before the jwt is generated. This can be used to add claims, or halt and
+return an error.</p>
+
+<h3 id="afterencodeandsign">after_encode_and_sign</h3>
+
+<p>This runs after the JWT has been encoded. Returning an error will not halt, but
+can be used to to extend behaviour. For example store the token in a DB.</p>
+
+<h3 id="aftersignin">after_sign_in</h3>
+
+<p>Runs after a token is signed in (via a session). Use this to record information
+about logins etc.</p>
+
+<h3 id="beforesignout">before_sign_out</h3>
+
+<p>Before logging out of the session, these hooks run. The session will be logged
+out regardless but provides an opportunity to record it.</p>
+
+<h3 id="onverify">on_verify</h3>
+
+<p>Runs after claims have successfully been verified from the JWT which occurs
+every time a request is verified, which could come from a session, header or
+channel.</p>
+
+<h3 id="onrevoke">on_revoke</h3>
+
+<p>Called via Guardian.revoke!. This is run when the token should be considered
+revoked. By default Guardian takes no specific steps to consider a token
+revoked. If you’re storing tokens in the DB though, this would be the time to
+delete them.</p>
+
+      </div>
+      
+      
+      <div id="disqus_thread"></div>
+      <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+      
+    </article>
+
+    <footer>
+      <span><a href="http://hassox.github.io">Daniel Neighman</a></span>
+      <span><a href="https://github.com/hassox/"><i class="fa fa-github-square"></i></a><a href="https://twitter.com/hassox/"><i class="fa fa-twitter-square"></i></a></span>
+      <span>&copy; 2015</span>
+    </footer>
+    <script>
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+      ga('create', 'UA-64645312-1', 'auto');
+      ga('send', 'pageview');
+
+    </script>
+  </body>
+</html>

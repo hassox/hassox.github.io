@@ -5,9 +5,81 @@
     <description>Tech and Stuff</description>
     <link>http://hassox.github.io</link>
     <atom:link href="http://hassox.github.iofeed.xml" rel="self" type="application/rss+xml" />
-    <pubDate>Sun, 30 Aug 2015 15:48:49 -0700</pubDate>
-    <lastBuildDate>Sun, 30 Aug 2015 15:48:49 -0700</lastBuildDate>
+    <pubDate>Sun, 30 Aug 2015 16:04:55 -0700</pubDate>
+    <lastBuildDate>Sun, 30 Aug 2015 16:04:55 -0700</lastBuildDate>
     <generator>Jekyll v2.5.3</generator>
+    
+      <item>
+        <title>Guardian Hooks</title>
+        <description>&lt;p&gt;Some time ago I introduced Hooks to Guardian. Hooks are a mechanism for you to
+plug-in to lifecycle of authentication. These can be useful to extend or
+customize the behaviour of Guardian within your application.&lt;/p&gt;
+
+&lt;p&gt;A Guardian.Hook is implemented as a behvaiour with default implementations of
+each callback so you only need to implement what you’re interested in. The
+available hooks are:&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;defcallback before_encode_and_sign(resource :: term, type :: atom, claims :: Map)
+defcallback after_encode_and_sign(resource :: term, type :: atom, claims :: Map, token :: String.t)
+defcallback after_sign_in(conn :: Plug.Conn.t, location :: atom | nil)
+defcallback before_sign_out(conn :: Plug.Conn.t, location :: atom | nil)
+defcallback on_verify(claims :: Map, jwt :: String.t)
+defcallback on_revoke(claims :: Map, jwt :: String.t)&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;To create your own module just use the Guardian.Hooks module.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-elixir&quot; data-lang=&quot;elixir&quot;&gt;&lt;span class=&quot;kd&quot;&gt;defmodule&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;MyHooks&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;do&lt;/span&gt;
+  &lt;span class=&quot;kn&quot;&gt;use&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Guardian.Hooks&lt;/span&gt;
+
+  &lt;span class=&quot;kd&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;before_encode_and_sign&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;resource&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;type&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;claims&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;do&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;# to keep this as an authenticated token, return { :ok, { resource, type, claims }&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;# to fail and prevent the mint from happening return { :error, :reason }&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;end&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;end&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;h3 id=&quot;beforeencodeandsign&quot;&gt;before_encode_and_sign&lt;/h3&gt;
+
+&lt;p&gt;Runs before the jwt is generated. This can be used to add claims, or halt and
+return an error.&lt;/p&gt;
+
+&lt;h3 id=&quot;afterencodeandsign&quot;&gt;after_encode_and_sign&lt;/h3&gt;
+
+&lt;p&gt;This runs after the JWT has been encoded. Returning an error will not halt, but
+can be used to to extend behaviour. For example store the token in a DB.&lt;/p&gt;
+
+&lt;h3 id=&quot;aftersignin&quot;&gt;after_sign_in&lt;/h3&gt;
+
+&lt;p&gt;Runs after a token is signed in (via a session). Use this to record information
+about logins etc.&lt;/p&gt;
+
+&lt;h3 id=&quot;beforesignout&quot;&gt;before_sign_out&lt;/h3&gt;
+
+&lt;p&gt;Before logging out of the session, these hooks run. The session will be logged
+out regardless but provides an opportunity to record it.&lt;/p&gt;
+
+&lt;h3 id=&quot;onverify&quot;&gt;on_verify&lt;/h3&gt;
+
+&lt;p&gt;Runs after claims have successfully been verified from the JWT which occurs
+every time a request is verified, which could come from a session, header or
+channel.&lt;/p&gt;
+
+&lt;h3 id=&quot;onrevoke&quot;&gt;on_revoke&lt;/h3&gt;
+
+&lt;p&gt;Called via Guardian.revoke!. This is run when the token should be considered
+revoked. By default Guardian takes no specific steps to consider a token
+revoked. If you’re storing tokens in the DB though, this would be the time to
+delete them.&lt;/p&gt;
+</description>
+        <pubDate>Wed, 30 Sep 2015 00:00:00 -0700</pubDate>
+        <link>http://hassox.github.io/elixir/guardian/2015/09/30/guardian-hooks.html</link>
+        <guid isPermaLink="true">http://hassox.github.io/elixir/guardian/2015/09/30/guardian-hooks.html</guid>
+        
+        
+        <category>elixir</category>
+        
+        <category>guardian</category>
+        
+      </item>
     
       <item>
         <title>Adding realm support for Authorization headers</title>

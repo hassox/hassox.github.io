@@ -30,6 +30,60 @@
     
     <article>
       <header>
+        <h2><a href="/elixir/guardian/2015/09/30/guardian-hooks.html">Guardian Hooks</a></h2>
+        <p><time datetime="2015-09-30T00:00:00-07:00">Sep 30, 2015</time> • elixir and guardian</p>
+      </header>
+      <div>
+<p>Some time ago I introduced Hooks to Guardian. Hooks are a mechanism for you to
+plug-in to lifecycle of authentication. These can be useful to extend or
+customize the behaviour of Guardian within your application.</p>
+
+<p>A Guardian.Hook is implemented as a behvaiour with default implementations of
+each callback so you only need to implement what you’re interested in. The
+available hooks are:</p>
+
+<div class="highlight"><pre><code class="language-text" data-lang="text">defcallback before_encode_and_sign(resource :: term, type :: atom, claims :: Map)
+defcallback after_encode_and_sign(resource :: term, type :: atom, claims :: Map, token :: String.t)
+defcallback after_sign_in(conn :: Plug.Conn.t, location :: atom | nil)
+defcallback before_sign_out(conn :: Plug.Conn.t, location :: atom | nil)
+defcallback on_verify(claims :: Map, jwt :: String.t)
+defcallback on_revoke(claims :: Map, jwt :: String.t)</code></pre></div>
+
+<p>To create your own module just use the Guardian.Hooks module.</p>
+
+<div class="highlight"><pre><code class="language-elixir" data-lang="elixir"><span class="kd">defmodule</span> <span class="nc">MyHooks</span> <span class="k">do</span>
+  <span class="kn">use</span> <span class="nc">Guardian.Hooks</span>
+
+  <span class="kd">def</span> <span class="n">before_encode_and_sign</span><span class="p">(</span><span class="n">resource</span><span class="p">,</span> <span class="n">type</span><span class="p">,</span> <span class="n">claims</span><span class="p">)</span> <span class="k">do</span>
+    <span class="c1"># to keep this as an authenticated token, return { :ok, { resource, type, claims }</span>
+    <span class="c1"># to fail and prevent the mint from happening return { :error, :reason }</span>
+  <span class="k">end</span>
+<span class="k">end</span></code></pre></div>
+
+<h3 id="beforeencodeandsign">before_encode_and_sign</h3>
+
+<p>Runs before the jwt is generated. This can be used to add claims, or halt and
+return an error.</p>
+
+<h3 id="afterencodeandsign">after_encode_and_sign</h3>
+
+<p>This runs after the JWT has been encoded. Returning an error will not halt, but
+can be used to to extend behaviour. For example store the token in a DB.</p>
+
+<h3 id="aftersignin">after_sign_in</h3>
+
+<p>Runs after a token is signed in (via a session). Use this to record information
+about logins etc.</p>
+
+
+      </div>
+      <footer>
+        <p><a href="/elixir/guardian/2015/09/30/guardian-hooks.html">read more &raquo;</a></p>
+      </footer>
+    </article>
+    
+    <article>
+      <header>
         <h2><a href="/elixir/guardian/2015/09/30/authorization-realms.html">Adding realm support for Authorization headers</a></h2>
         <p><time datetime="2015-09-30T00:00:00-07:00">Sep 30, 2015</time> • elixir and guardian</p>
       </header>
