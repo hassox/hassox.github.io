@@ -50,8 +50,8 @@ Inside your controller action, you can access each set in the usual ways:
   plug Guardian.Plug.EnsureAuthenticated, on_failure: { SomeModule, :user_failure }, key: :user
 
   def index(conn, params) do
-    Guardian.Plug.claims!(conn) # Fetch the claims for the client/application
-    Guardian.Plug.claims!(conn, :user) # Fetch the claims for the user
+    Guardian.Plug.claims(conn) # Fetch the claims for the client/application
+    Guardian.Plug.claims(conn, :user) # Fetch the claims for the user
     # snip
   end
 {% endhighlight %}

@@ -71,8 +71,8 @@ in a controller.</p>
   <span class="n">plug</span> <span class="nc">Guardian.Plug.EnsureAuthenticated</span><span class="p">,</span> <span class="ss">on_failure</span><span class="p">:</span> <span class="p">{</span> <span class="nc">SomeModule</span><span class="p">,</span> <span class="ss">:user_failure</span> <span class="p">},</span> <span class="ss">key</span><span class="p">:</span> <span class="ss">:user</span>
 
   <span class="kd">def</span> <span class="n">index</span><span class="p">(</span><span class="n">conn</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span> <span class="k">do</span>
-    <span class="nc">Guardian.Plug</span><span class="p">.</span><span class="n">claims!</span><span class="p">(</span><span class="n">conn</span><span class="p">)</span> <span class="c1"># Fetch the claims for the client/application</span>
-    <span class="nc">Guardian.Plug</span><span class="p">.</span><span class="n">claims!</span><span class="p">(</span><span class="n">conn</span><span class="p">,</span> <span class="ss">:user</span><span class="p">)</span> <span class="c1"># Fetch the claims for the user</span>
+    <span class="nc">Guardian.Plug</span><span class="p">.</span><span class="n">claims</span><span class="p">(</span><span class="n">conn</span><span class="p">)</span> <span class="c1"># Fetch the claims for the client/application</span>
+    <span class="nc">Guardian.Plug</span><span class="p">.</span><span class="n">claims</span><span class="p">(</span><span class="n">conn</span><span class="p">,</span> <span class="ss">:user</span><span class="p">)</span> <span class="c1"># Fetch the claims for the user</span>
     <span class="c1"># snip</span>
   <span class="k">end</span></code></pre></div>
 
