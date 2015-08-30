@@ -61,17 +61,17 @@ You can encode these puppies right when you sign in.
 Guardian.Plug.sign_in(conn, resource, :token, perms: %{ default: [:read], admin: [:dashboard]})
 {% endhighlight %}
 
-Simple right. The same thing is true when minting manually.
+Simple right. The same thing is true when encoding manually.
 
 {% highlight elixir %}
-Guardian.mint(resource, :token, perms: %{ default: [:read], admin: [:dashboard]})
+Guardian.encode_and_sign(resource, :token, perms: %{ default: [:read], admin: [:dashboard]})
 {% endhighlight %}
 
 But what if I add a permission and I want the admin to have access to all the
 things? (I hear myself asking myself).
 
 {% highlight elixir %}
-Guardian.mint(resource, :token, perms: %{ default: [:read], admin: Guardian.Permissions.max})
+Guardian.encode_and_sign(resource, :token, perms: %{ default: [:read], admin: Guardian.Permissions.max})
 {% endhighlight %}
 
 By using the `Guardian.Permissions.max/0` function, you get it all.

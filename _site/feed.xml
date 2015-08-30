@@ -5,9 +5,95 @@
     <description>Tech and Stuff</description>
     <link>http://hassox.github.io</link>
     <atom:link href="http://hassox.github.iofeed.xml" rel="self" type="application/rss+xml" />
-    <pubDate>Thu, 09 Jul 2015 08:52:14 -0700</pubDate>
-    <lastBuildDate>Thu, 09 Jul 2015 08:52:14 -0700</lastBuildDate>
+    <pubDate>Sun, 30 Aug 2015 15:45:17 -0700</pubDate>
+    <lastBuildDate>Sun, 30 Aug 2015 15:45:17 -0700</lastBuildDate>
     <generator>Jekyll v2.5.3</generator>
+    
+      <item>
+        <title>Adding realm support for Authorization headers</title>
+        <description>&lt;p&gt;When you’re verifying tokens with Guardian, for API access you probably want to
+use the Authorization header.&lt;/p&gt;
+
+&lt;p&gt;Usually these headers look something like&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;Authorization: Bearer &amp;lt;token&amp;gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;The bearer part is known as the &lt;em&gt;realm&lt;/em&gt;. You might want to use different realms.
+I remember writing and OAuth provider, and as part of renewing your token the
+API required that the client and user tokens were set. For example, the client
+being the application requesting the renual, and the user for the user who owns
+the token.&lt;/p&gt;
+
+&lt;p&gt;These authentication headers can both be set on the same response.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;Authorization: Client &amp;lt;application token&amp;gt;
+Authorization: User &amp;lt;user token&amp;gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;Guardian can handle the easy case of token or many if that’s what you need.
+These can go in your route file to form a plugin, or you can use them directly
+in a controller.&lt;/p&gt;
+
+&lt;p&gt;Using the above as an example, you can include them in your pipelines&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-elixir&quot; data-lang=&quot;elixir&quot;&gt;&lt;span class=&quot;n&quot;&gt;pipeline&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:api&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;do&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;plug&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:accepts&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&amp;quot;json&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;plug&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Guardian.Plug.VerifyHeader&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;realm&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;Client&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;key&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:default&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;plug&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Guardian.Plug.VerifyHeader&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;realm&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;User&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;key&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:user&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;plug&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Guardian.Plug.LoadResource&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;key&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:user&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;end&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;Inside your controller action, you can access each set in the usual ways:&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-elixir&quot; data-lang=&quot;elixir&quot;&gt;&lt;span class=&quot;n&quot;&gt;plug&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Guardian.Plug.EnsureAuthenticated&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;on_failure&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;SomeModule&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:client_failure&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;plug&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Guardian.Plug.EnsureAuthenticated&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;on_failure&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;SomeModule&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:user_failure&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;},&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;key&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:user&lt;/span&gt;
+
+  &lt;span class=&quot;kd&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;index&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;conn&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;params&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;do&lt;/span&gt;
+    &lt;span class=&quot;nc&quot;&gt;Guardian.Plug&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;claims!&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;conn&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;# Fetch the claims for the client/application&lt;/span&gt;
+    &lt;span class=&quot;nc&quot;&gt;Guardian.Plug&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;claims!&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;conn&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:user&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;# Fetch the claims for the user&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;# snip&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;end&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;Adding realm support is important for supporting robust API support. Having it
+integrated seamlessly with Guardian should make it dead simple.&lt;/p&gt;
+</description>
+        <pubDate>Wed, 30 Sep 2015 00:00:00 -0700</pubDate>
+        <link>http://hassox.github.io/elixir/guardian/2015/09/30/authorization-realms.html</link>
+        <guid isPermaLink="true">http://hassox.github.io/elixir/guardian/2015/09/30/authorization-realms.html</guid>
+        
+        
+        <category>elixir</category>
+        
+        <category>guardian</category>
+        
+      </item>
+    
+      <item>
+        <title>Guardian - Renaming some things</title>
+        <description>&lt;p&gt;I’ve been getting some feedback that some of the modules and function aren’t
+named such that their behaviour is immediately apparent, so I’ve renamed them.
+The rename comes in with 0.6.0 and shouldn’t impact everyone.&lt;/p&gt;
+
+&lt;p&gt;The changes are:&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;Guardian.mint -&amp;gt; Guardian.encode_and_sign
+Guardian.verify -&amp;gt; Guardian.decode_and_verify
+
+Guardian.Plug.EnsureSession -&amp;gt; Guardian.Plug.EnsureAuthenticated
+Guardian.Plug.VerifyAuthorization -&amp;gt; Guardian.Plug.VerifyHeader&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;The function signatures and module behaviour remains the same, it’s just a
+rename.&lt;/p&gt;
+</description>
+        <pubDate>Sun, 30 Aug 2015 00:00:00 -0700</pubDate>
+        <link>http://hassox.github.io/elixir/guardian/2015/08/30/guardian-module-rename.html</link>
+        <guid isPermaLink="true">http://hassox.github.io/elixir/guardian/2015/08/30/guardian-module-rename.html</guid>
+        
+        
+        <category>elixir</category>
+        
+        <category>guardian</category>
+        
+      </item>
     
       <item>
         <title>Removing CSRF token type</title>
@@ -37,7 +123,11 @@ tokens. That’ll be the focus of the next round of work on Guardian.&lt;/p&gt;
     
       <item>
         <title>API Authentication with Guardian</title>
-        <description>&lt;p&gt;Over my last couple of posts I’ve talked about &lt;a href=&quot;http://hassox.github.io/elixir/guardian/2015/06/19/guardian-getting-started.html&quot;&gt;getting
+        <description>&lt;p&gt;Update: 30-08-20 updated for the 0.6.0 API&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;Over my last couple of posts I’ve talked about &lt;a href=&quot;http://hassox.github.io/elixir/guardian/2015/06/19/guardian-getting-started.html&quot;&gt;getting
 started&lt;/a&gt;,
 &lt;a href=&quot;http://hassox.github.io/elixir/guardian/2015/06/24/introducing-guardian-permissions.html&quot;&gt;permissions&lt;/a&gt;
 and &lt;a href=&quot;http://hassox.github.io/elixir/guardian/2015/06/29/simple-email-password-authentication.html&quot;&gt;simple email/password
@@ -58,7 +148,7 @@ endpoints. Lets take a quick look at how that works.&lt;/p&gt;
 
 &lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-elixir&quot; data-lang=&quot;elixir&quot;&gt;&lt;span class=&quot;n&quot;&gt;pipeline&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:api&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;do&lt;/span&gt;
     &lt;span class=&quot;n&quot;&gt;plug&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:accepts&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&amp;quot;json&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
-    &lt;span class=&quot;n&quot;&gt;plug&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Guardian.Plug.VerifyAuthorization&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;plug&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Guardian.Plug.VerifyHeader&lt;/span&gt;
     &lt;span class=&quot;n&quot;&gt;plug&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Guardian.Plug.LoadResource&lt;/span&gt;
   &lt;span class=&quot;k&quot;&gt;end&lt;/span&gt;
 
@@ -80,7 +170,7 @@ and the LoadResource one will load any resource found there.&lt;/p&gt;
   &lt;span class=&quot;kn&quot;&gt;alias&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;PhoenixGuardian.User&lt;/span&gt;
   &lt;span class=&quot;kn&quot;&gt;alias&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;PhoenixGuardian.SessionController&lt;/span&gt;
 
-  &lt;span class=&quot;n&quot;&gt;plug&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Guardian.Plug.EnsureSession&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;on_failure&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;SessionController&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:unauthenticated_api&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;plug&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Guardian.Plug.EnsureAuthenticated&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;on_failure&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;SessionController&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:unauthenticated_api&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
   &lt;span class=&quot;n&quot;&gt;plug&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:action&lt;/span&gt;
 
   &lt;span class=&quot;c1&quot;&gt;# …&lt;/span&gt;
@@ -102,7 +192,7 @@ This is great for web pages but not quite enough for APIs. Lets
 have a look at how to get a token:&lt;/p&gt;
 
 &lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-elixir&quot; data-lang=&quot;elixir&quot;&gt;&lt;span class=&quot;n&quot;&gt;user&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Repo&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;get&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;User&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:ok&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;jwt&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;full_claims&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Guardian&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;mint&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;user&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:api&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:ok&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;jwt&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;full_claims&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Guardian&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;encode_and_sign&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;user&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:api&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;This will generate a JWT that you can provide to your client, valid for the
 configured ttl. Once you get to the controller it’s the same API as the browser
@@ -128,9 +218,7 @@ based authentication.&lt;/p&gt;
     
       <item>
         <title>Simple email password Authentication</title>
-        <description>&lt;p&gt;Update: With the arrival or masked CSRF keys in Phoenix, I’ve re-thought the
-CSRF protection baked into Guardian. Ultimately it doesn’t provide the kinds of
-assurances I originally had in mind so this feature has been removed.&lt;/p&gt;
+        <description>&lt;p&gt;Update: 30-08-20 updated for the 0.6.0 API&lt;/p&gt;
 
 &lt;hr /&gt;
 
@@ -295,9 +383,9 @@ anything but should be consistent.&lt;/p&gt;
 
   &lt;span class=&quot;kn&quot;&gt;alias&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;PhoenixGuardian.User&lt;/span&gt;
   &lt;span class=&quot;kn&quot;&gt;alias&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;PhoenixGuardian.SessionController&lt;/span&gt;
-  &lt;span class=&quot;kn&quot;&gt;alias&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Guardian.Plug.EnsureSession&lt;/span&gt;
+  &lt;span class=&quot;kn&quot;&gt;alias&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Guardian.Plug.EnsureAuthenticated&lt;/span&gt;
 
-  &lt;span class=&quot;n&quot;&gt;plug&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;EnsureSession&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;%{&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;on_failure&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;SessionController&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:new&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;when&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;not&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;action&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;:new&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:create&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;plug&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;EnsureAuthenticated&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;%{&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;on_failure&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;SessionController&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:new&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;when&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;not&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;action&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;:new&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:create&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
 
   &lt;span class=&quot;c1&quot;&gt;# …&lt;/span&gt;
 
@@ -392,14 +480,14 @@ Couple of things to keep in mind:&lt;/p&gt;
 
 &lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-elixir&quot; data-lang=&quot;elixir&quot;&gt;&lt;span class=&quot;nc&quot;&gt;Guardian.Plug&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;sign_in&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;conn&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;resource&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:token&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;perms&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;%{&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;default&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;:read&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;],&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;admin&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;:dashboard&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]})&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
-&lt;p&gt;Simple right. The same thing is true when minting manually.&lt;/p&gt;
+&lt;p&gt;Simple right. The same thing is true when encoding manually.&lt;/p&gt;
 
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-elixir&quot; data-lang=&quot;elixir&quot;&gt;&lt;span class=&quot;nc&quot;&gt;Guardian&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;mint&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;resource&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:token&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;perms&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;%{&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;default&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;:read&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;],&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;admin&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;:dashboard&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]})&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-elixir&quot; data-lang=&quot;elixir&quot;&gt;&lt;span class=&quot;nc&quot;&gt;Guardian&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;encode_and_sign&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;resource&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:token&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;perms&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;%{&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;default&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;:read&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;],&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;admin&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;:dashboard&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]})&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;But what if I add a permission and I want the admin to have access to all the
 things? (I hear myself asking myself).&lt;/p&gt;
 
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-elixir&quot; data-lang=&quot;elixir&quot;&gt;&lt;span class=&quot;nc&quot;&gt;Guardian&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;mint&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;resource&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:token&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;perms&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;%{&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;default&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;:read&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;],&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;admin&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Guardian.Permissions&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;max&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;})&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-elixir&quot; data-lang=&quot;elixir&quot;&gt;&lt;span class=&quot;nc&quot;&gt;Guardian&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;encode_and_sign&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;resource&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:token&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;perms&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;%{&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;default&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;:read&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;],&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;admin&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Guardian.Permissions&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;max&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;})&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;By using the &lt;code&gt;Guardian.Permissions.max/0&lt;/code&gt; function, you get it all.&lt;/p&gt;
 
@@ -461,9 +549,7 @@ blog post. Enjoy!&lt;/p&gt;
     
       <item>
         <title>Getting started with Guardian</title>
-        <description>&lt;p&gt;Update: With the arrival or masked CSRF keys in Phoenix, I’ve re-thought the
-CSRF protection baked into Guardian. Ultimately it doesn’t provide the kinds of
-assurances I originally had in mind so this feature has been removed.&lt;/p&gt;
+        <description>&lt;p&gt;Updated: 2015-08-30 to support the 0.6.0 API.&lt;/p&gt;
 
 &lt;hr /&gt;
 
@@ -522,7 +608,7 @@ Screw language differences.&lt;/p&gt;
 &lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-elixir&quot; data-lang=&quot;elixir&quot;&gt;&lt;span class=&quot;kd&quot;&gt;defp&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;deps&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;do&lt;/span&gt;
   &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;
     &lt;span class=&quot;c1&quot;&gt;# ...&lt;/span&gt;
-    &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;:guardian&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;~&amp;gt;0.4.0&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;},&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;:guardian&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;~&amp;gt;0.6.0&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;},&lt;/span&gt;
     &lt;span class=&quot;c1&quot;&gt;# ...&lt;/span&gt;
   &lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
 &lt;span class=&quot;k&quot;&gt;end&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
@@ -542,7 +628,7 @@ need to configure it.&lt;/p&gt;
 &lt;p&gt;A couple of things to note.&lt;/p&gt;
 
 &lt;ul&gt;
-  &lt;li&gt;Jokens &lt;code&gt;json_module&lt;/code&gt; should be set to &lt;code&gt;Guardian.JWT&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;Jokens &lt;code&gt;config_module&lt;/code&gt; should be set to &lt;code&gt;Guardian.JWT&lt;/code&gt;&lt;/li&gt;
   &lt;li&gt;&lt;code&gt;verify_issuer&lt;/code&gt; Set this to true if you want to only accept tokens generated by yourself (even if another app has your secret)&lt;/li&gt;
   &lt;li&gt;Please have different &lt;code&gt;secret_key&lt;/code&gt;s per environment!&lt;/li&gt;
 &lt;/ul&gt;
@@ -590,7 +676,7 @@ will work.&lt;/p&gt;
 
 &lt;span class=&quot;n&quot;&gt;pipeline&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:api&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;do&lt;/span&gt;
   &lt;span class=&quot;n&quot;&gt;plug&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:accepts&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&amp;quot;json&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
-  &lt;span class=&quot;n&quot;&gt;plug&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Guardian.Plug.VerifyAuthorization&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;# Looks in the Authorization header for the token&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;plug&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Guardian.Plug.VerifyHeader&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;# Looks in the Authorization header for the token&lt;/span&gt;
   &lt;span class=&quot;n&quot;&gt;plug&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Guardian.Plug.LoadResource&lt;/span&gt;
 &lt;span class=&quot;k&quot;&gt;end&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
@@ -599,21 +685,21 @@ there was a verified token found. If the token isn’t there or is invalid,
 nothing bad happens, the load resource won’t do anything.&lt;/p&gt;
 
 &lt;p&gt;When we want to ensure that someone is authenticated we can ensure they have a
-session (an authentication session rather than a plug session).&lt;/p&gt;
+verified token.&lt;/p&gt;
 
 &lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-elixir&quot; data-lang=&quot;elixir&quot;&gt;&lt;span class=&quot;kd&quot;&gt;defmodule&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;PhoenixGuardian.UserController&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;do&lt;/span&gt;
   &lt;span class=&quot;kn&quot;&gt;use&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;PhoenixGuardian.Web&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:controller&lt;/span&gt;
 
   &lt;span class=&quot;kn&quot;&gt;alias&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;PhoenixGuardian.User&lt;/span&gt;
 
-  &lt;span class=&quot;n&quot;&gt;plug&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Guardian.Plug.EnsureSession&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;%{&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;on_failure&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;PhoenixGuardian.SessionController&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:new&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;when&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;not&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;action&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;:new&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:create&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;plug&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Guardian.Plug.EnsureAuthenticated&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;%{&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;on_failure&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;PhoenixGuardian.SessionController&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:new&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;when&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;not&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;action&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;:new&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:create&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
 
   &lt;span class=&quot;c1&quot;&gt;# ....&lt;/span&gt;
 &lt;span class=&quot;k&quot;&gt;end&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;Ok, so there’s some stuff going on there. Lets break it down.&lt;/p&gt;
 
-&lt;p&gt;The Guardian.Plug.EnsureSession checks to make sure there was a valid token
+&lt;p&gt;The Guardian.Plug.EnsureAuthenticated checks to make sure there was a valid token
 found. If it finds one we move on.&lt;/p&gt;
 
 &lt;p&gt;If the plug cannot find a verified token for the connection, it calls the
@@ -648,11 +734,7 @@ That’s it. Once you do that, your token is generated, pumped into the connecti
 and session and off you go.&lt;/p&gt;
 
 &lt;p&gt;The &lt;code&gt;:csrf&lt;/code&gt; determines the tokens type (stored in the &lt;code&gt;:aud&lt;/code&gt; field). This can be
-anything you want it to be (e.g. ‘token’, ‘csrf’, ‘api’, ‘oauth’ etc). The
-&lt;code&gt;:csrf&lt;/code&gt; one is special though. When you generate a csrf token, you’re asserting
-that that token is only useful when coupled with the csrf token it was generated
-for. i.e. browser pages this app generated. This would be the traditional only
-works on my page type of auth.&lt;/p&gt;
+anything you want it to be (e.g. ‘token’, ‘csrf’, ‘api’, ‘oauth’ etc).&lt;/p&gt;
 
 &lt;h3 id=&quot;logout&quot;&gt;Logout&lt;/h3&gt;
 
@@ -668,9 +750,6 @@ works on my page type of auth.&lt;/p&gt;
 &lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-erb&quot; data-lang=&quot;erb&quot;&gt;&lt;span class=&quot;cp&quot;&gt;&amp;lt;%=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;Guardian&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Plug&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;current_token&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;vi&quot;&gt;@conn&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;do&lt;/span&gt; &lt;span class=&quot;cp&quot;&gt;%&amp;gt;&lt;/span&gt;&lt;span class=&quot;x&quot;&gt;&lt;/span&gt;
 &lt;span class=&quot;x&quot;&gt;  &amp;lt;meta name=&amp;#39;guardian_token&amp;#39; content=&amp;quot;&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;&amp;lt;%=&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;Guardian&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Plug&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;current_token&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;vi&quot;&gt;@conn&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;cp&quot;&gt;%&amp;gt;&lt;/span&gt;&lt;span class=&quot;x&quot;&gt;&amp;quot;&amp;gt;&lt;/span&gt;
 &lt;span class=&quot;cp&quot;&gt;&amp;lt;%&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;end&lt;/span&gt; &lt;span class=&quot;cp&quot;&gt;%&amp;gt;&lt;/span&gt;&lt;span class=&quot;x&quot;&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;Since we generated the token as &lt;code&gt;:csrf&lt;/code&gt; we need to pass in the csrf token, so we
-dump them on the page as a way to pass it to the javascript client.&lt;/p&gt;
 
 &lt;p&gt;&lt;code&gt;some_javascript.js&lt;/code&gt;&lt;/p&gt;
 

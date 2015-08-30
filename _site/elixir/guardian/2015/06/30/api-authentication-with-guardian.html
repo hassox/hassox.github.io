@@ -33,6 +33,10 @@
         <p><time datetime="2015-06-30T00:00:00-07:00">Jun 30, 2015</time> • elixir and guardian</p>
       </header>
       <div>
+<p>Update: 30-08-20 updated for the 0.6.0 API</p>
+
+<hr />
+
 <p>Over my last couple of posts I’ve talked about <a href="http://hassox.github.io/elixir/guardian/2015/06/19/guardian-getting-started.html">getting
 started</a>,
 <a href="http://hassox.github.io/elixir/guardian/2015/06/24/introducing-guardian-permissions.html">permissions</a>
@@ -54,7 +58,7 @@ endpoints. Lets take a quick look at how that works.</p>
 
 <div class="highlight"><pre><code class="language-elixir" data-lang="elixir"><span class="n">pipeline</span> <span class="ss">:api</span> <span class="k">do</span>
     <span class="n">plug</span> <span class="ss">:accepts</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;json&quot;</span><span class="p">]</span>
-    <span class="n">plug</span> <span class="nc">Guardian.Plug.VerifyAuthorization</span>
+    <span class="n">plug</span> <span class="nc">Guardian.Plug.VerifyHeader</span>
     <span class="n">plug</span> <span class="nc">Guardian.Plug.LoadResource</span>
   <span class="k">end</span>
 
@@ -76,7 +80,7 @@ and the LoadResource one will load any resource found there.</p>
   <span class="kn">alias</span> <span class="nc">PhoenixGuardian.User</span>
   <span class="kn">alias</span> <span class="nc">PhoenixGuardian.SessionController</span>
 
-  <span class="n">plug</span> <span class="nc">Guardian.Plug.EnsureSession</span><span class="p">,</span> <span class="ss">on_failure</span><span class="p">:</span> <span class="p">{</span> <span class="nc">SessionController</span><span class="p">,</span> <span class="ss">:unauthenticated_api</span> <span class="p">}</span>
+  <span class="n">plug</span> <span class="nc">Guardian.Plug.EnsureAuthenticated</span><span class="p">,</span> <span class="ss">on_failure</span><span class="p">:</span> <span class="p">{</span> <span class="nc">SessionController</span><span class="p">,</span> <span class="ss">:unauthenticated_api</span> <span class="p">}</span>
   <span class="n">plug</span> <span class="ss">:action</span>
 
   <span class="c1"># …</span>
@@ -98,7 +102,7 @@ This is great for web pages but not quite enough for APIs. Lets
 have a look at how to get a token:</p>
 
 <div class="highlight"><pre><code class="language-elixir" data-lang="elixir"><span class="n">user</span> <span class="p">=</span> <span class="nc">Repo</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="nc">User</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-<span class="p">{</span> <span class="ss">:ok</span><span class="p">,</span> <span class="n">jwt</span><span class="p">,</span> <span class="n">full_claims</span> <span class="p">}</span> <span class="p">=</span> <span class="nc">Guardian</span><span class="p">.</span><span class="n">mint</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="ss">:api</span><span class="p">)</span></code></pre></div>
+<span class="p">{</span> <span class="ss">:ok</span><span class="p">,</span> <span class="n">jwt</span><span class="p">,</span> <span class="n">full_claims</span> <span class="p">}</span> <span class="p">=</span> <span class="nc">Guardian</span><span class="p">.</span><span class="n">encode_and_sign</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="ss">:api</span><span class="p">)</span></code></pre></div>
 
 <p>This will generate a JWT that you can provide to your client, valid for the
 configured ttl. Once you get to the controller it’s the same API as the browser

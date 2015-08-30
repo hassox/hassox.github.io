@@ -6,9 +6,7 @@
     - guardian
 ---
 
-Update: With the arrival or masked CSRF keys in Phoenix, I've re-thought the
-CSRF protection baked into Guardian. Ultimately it doesn't provide the kinds of
-assurances I originally had in mind so this feature has been removed.
+Update: 30-08-20 updated for the 0.6.0 API
 
 --------------------------------------------------------
 
@@ -186,9 +184,9 @@ defmodule PhoenixGuardian.UserController do
 
   alias PhoenixGuardian.User
   alias PhoenixGuardian.SessionController
-  alias Guardian.Plug.EnsureSession
+  alias Guardian.Plug.EnsureAuthenticated
 
-  plug EnsureSession, %{ on_failure: { SessionController, :new } } when not action in [:new, :create]
+  plug EnsureAuthenticated, %{ on_failure: { SessionController, :new } } when not action in [:new, :create]
 
   # …
 

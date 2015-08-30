@@ -6,6 +6,10 @@
     - guardian
 ---
 
+Update: 30-08-20 updated for the 0.6.0 API
+
+--------------------------------------------------------
+
 Over my last couple of posts I've talked about [getting
 started](http://hassox.github.io/elixir/guardian/2015/06/19/guardian-getting-started.html),
 [permissions](http://hassox.github.io/elixir/guardian/2015/06/24/introducing-guardian-permissions.html)
@@ -28,7 +32,7 @@ In your router, add:
 {% highlight elixir %}
   pipeline :api do
     plug :accepts, ["json"]
-    plug Guardian.Plug.VerifyAuthorization
+    plug Guardian.Plug.VerifyHeader
     plug Guardian.Plug.LoadResource
   end
 
@@ -52,7 +56,7 @@ defmodule PhoenixGuardian.Api.V1.UserController do
   alias PhoenixGuardian.User
   alias PhoenixGuardian.SessionController
 
-  plug Guardian.Plug.EnsureSession, on_failure: { SessionController, :unauthenticated_api }
+  plug Guardian.Plug.EnsureAuthenticated, on_failure: { SessionController, :unauthenticated_api }
   plug :action
 
   # …
@@ -76,7 +80,7 @@ have a look at how to get a token:
 
 {% highlight elixir %}
 user = Repo.get(User, 1)
-{ :ok, jwt, full_claims } = Guardian.mint(user, :api)
+{ :ok, jwt, full_claims } = Guardian.encode_and_sign(user, :api)
 {% endhighlight %}
 
 This will generate a JWT that you can provide to your client, valid for the

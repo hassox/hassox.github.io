@@ -6,14 +6,14 @@
     <meta charset="utf-8">
     
     <meta name="description" content="Tech and Stuff">
-    <title> Archive › Stuff 'n Things</title>
-    <link rel="canonical" href="http://hassox.github.io/archive.html">
+    <title> Guardian - Renaming some things › Stuff 'n Things</title>
+    <link rel="canonical" href="http://hassox.github.io/elixir/guardian/2015/08/30/guardian-module-rename.html">
     <link href="/main.css" rel="stylesheet" type="text/css">
     <link href='//fonts.googleapis.com/css?family=Source+Sans+Pro:200,300,400,600,700,200italic,300italic,400italic,600italic,700italic' rel='stylesheet' type='text/css'>
     <link href='//fonts.googleapis.com/css?family=Gentium+Basic:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
     <link href='//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css' rel='stylesheet' type='text/css'>
     <link rel="alternate" type="application/rss+xml" title="Stuff 'n Things &raquo; Feed" href="/feed.xml">
-    
+    <script src="//hassox.disqus.com/embed.js" async></script>
     
   </head>
   <body>
@@ -21,7 +21,7 @@
       <h1><a href="/">Stuff 'n Things</a></h1>
       <nav>
         <ul>
-          <li><a href="/">Home</a></li><li><a href="/archive.html" id="selected">Archive</a></li>
+          <li><a href="/">Home</a></li><li><a href="/archive.html">Archive</a></li>
         </ul>
       </nav>
     </header>
@@ -29,86 +29,30 @@
     
     <article>
       <header>
-        <h2><a href="/archive.html">Archive</a></h2>
-        <p></p>
+        <h2><a href="/elixir/guardian/2015/08/30/guardian-module-rename.html">Guardian - Renaming some things</a></h2>
+        <p><time datetime="2015-08-30T00:00:00-07:00">Aug 30, 2015</time> • elixir and guardian</p>
       </header>
       <div>
-<ul>
-  
+<p>I’ve been getting some feedback that some of the modules and function aren’t
+named such that their behaviour is immediately apparent, so I’ve renamed them.
+The rename comes in with 0.6.0 and shouldn’t impact everyone.</p>
 
-    
-      <h3>2015</h3>
-    
+<p>The changes are:</p>
 
-    <li>September: <a href="/elixir/guardian/2015/09/30/authorization-realms.html">Adding realm support for Authorization headers</a></li>
-  
+<div class="highlight"><pre><code class="language-text" data-lang="text">Guardian.mint -&gt; Guardian.encode_and_sign
+Guardian.verify -&gt; Guardian.decode_and_verify
 
-    
-      
-      
-      
-    
+Guardian.Plug.EnsureSession -&gt; Guardian.Plug.EnsureAuthenticated
+Guardian.Plug.VerifyAuthorization -&gt; Guardian.Plug.VerifyHeader</code></pre></div>
 
-    <li>August: <a href="/elixir/guardian/2015/08/30/guardian-module-rename.html">Guardian - Renaming some things</a></li>
-  
-
-    
-      
-      
-      
-    
-
-    <li>July: <a href="/elixir/guardian/2015/07/09/removing-csrf-token-type.html">Removing CSRF token type</a></li>
-  
-
-    
-      
-      
-      
-    
-
-    <li>June: <a href="/elixir/guardian/2015/06/30/api-authentication-with-guardian.html">API Authentication with Guardian</a></li>
-  
-
-    
-      
-      
-      
-    
-
-    <li>June: <a href="/elixir/guardian/2015/06/29/simple-email-password-authentication.html">Simple email password Authentication</a></li>
-  
-
-    
-      
-      
-      
-    
-
-    <li>June: <a href="/elixir/guardian/2015/06/24/introducing-guardian-permissions.html">Introducing Guardian Permissions</a></li>
-  
-
-    
-      
-      
-      
-    
-
-    <li>June: <a href="/elixir/guardian/2015/06/19/guardian-getting-started.html">Getting started with Guardian</a></li>
-  
-
-    
-      
-      
-      
-    
-
-    <li>May: <a href="/elixir/2015/05/25/elixir-sudoku.html">Elixir Sudoku</a></li>
-  
-</ul>
+<p>The function signatures and module behaviour remains the same, it’s just a
+rename.</p>
 
       </div>
       
+      
+      <div id="disqus_thread"></div>
+      <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
       
     </article>
 
