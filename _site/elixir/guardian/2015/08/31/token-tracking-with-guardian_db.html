@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <!-- Niklas Buschmann 2015 MIT <http://github.com/niklasbuschmann> -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="utf-8">
+    
+    <meta name="description" content="Tech and Stuff">
+    <title> Token Tracking with GuardianDb › Stuff 'n Things</title>
+    <link rel="canonical" href="http://hassox.github.io/elixir/guardian/2015/08/31/token-tracking-with-guardian_db.html">
+    <link href="/main.css" rel="stylesheet" type="text/css">
+    <link href='//fonts.googleapis.com/css?family=Source+Sans+Pro:200,300,400,600,700,200italic,300italic,400italic,600italic,700italic' rel='stylesheet' type='text/css'>
+    <link href='//fonts.googleapis.com/css?family=Gentium+Basic:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
+    <link href='//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css' rel='stylesheet' type='text/css'>
+    <link rel="alternate" type="application/rss+xml" title="Stuff 'n Things &raquo; Feed" href="/feed.xml">
+    <script src="//hassox.disqus.com/embed.js" async></script>
+    
+  </head>
+  <body>
+    <header>
+      <h1><a href="/">Stuff 'n Things</a></h1>
+      <nav>
+        <ul>
+          <li><a href="/">Home</a></li><li><a href="/archive.html">Archive</a></li>
+        </ul>
+      </nav>
+    </header>
+    
+    
+    <article>
+      <header>
+        <h2><a href="/elixir/guardian/2015/08/31/token-tracking-with-guardian_db.html">Token Tracking with GuardianDb</a></h2>
+        <p><time datetime="2015-08-31T00:00:00-07:00">Aug 31, 2015</time> • elixir and guardian</p>
+      </header>
+      <div>
+<p>I’ve loved working on Guardian, but one thing has bothered me. When you logout,
+vanilla Guardian (and all vanilla JWT implementations) don’t actuall invalidate
+the token. All the information for the token is stored inside the token itself.</p>
+
+<p>This can lead to short term expiry keys to try and keep a handle on it. Even
+with this, you can’t actually revoke a token, so when someone logs out, their
+token is still valid.</p>
+
+<p>Initially my thought was to try and tie the token to the CSRF token, but this
+turned out not to be such a good idea (and practially impossible with masked CSRF tokens). Instead I wanted a way to keep a tight leash on tokens, when you log out they should no longer be valid. I didn’t want to load up Guardian with a bunch of database assumptions and baggage for everyones app though so it had to stay out of Guardian core.</p>
+
+<p>The result is <a href="https://github.com/hassox/guardian_db">GuardianDb</a>. This is a
+simple plugin that integrates via Guardian.Hooks.</p>
+
+<p>With it:</p>
+
+<ul>
+  <li>Every token is stored in the database (keyed by the jti - uuid)</li>
+  <li>When it is encoded, a database entry is created</li>
+  <li>Every time you verify (page request) a token it is checked. If the entry is
+missing, it does not verify</li>
+  <li>When you logout, or call <code>Guardian.revoke!</code> the entry is removed</li>
+</ul>
+
+<p>You can also clear out stale tokens by
+using <code>GuardianDb.Token.purge_expired_tokens!</code></p>
+
+<p>Setup is simple (and included in the <a href="https://github.com/hassox/guardian_db">README.md</a>). Generate the migration and then add to your config:</p>
+
+<div class="highlight"><pre><code class="language-elixir" data-lang="elixir"><span class="n">config</span> <span class="ss">:guardian</span><span class="p">,</span> <span class="nc">Guardian</span><span class="p">,</span>
+       <span class="ss">hooks</span><span class="p">:</span> <span class="nc">GuardianDb</span><span class="p">,</span>
+       <span class="c1"># …</span>
+
+<span class="n">config</span> <span class="ss">:guardian_db</span><span class="p">,</span> <span class="nc">GuardianDb</span><span class="p">,</span> <span class="ss">repo</span><span class="p">:</span> <span class="nc">MyApp.Repo</span></code></pre></div>
+
+
+      </div>
+      
+      
+      <div id="disqus_thread"></div>
+      <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+      
+    </article>
+
+    <footer>
+      <span><a href="http://hassox.github.io">Daniel Neighman</a></span>
+      <span><a href="https://github.com/hassox/"><i class="fa fa-github-square"></i></a><a href="https://twitter.com/hassox/"><i class="fa fa-twitter-square"></i></a></span>
+      <span>&copy; 2015</span>
+    </footer>
+    <script>
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+      ga('create', 'UA-64645312-1', 'auto');
+      ga('send', 'pageview');
+
+    </script>
+  </body>
+</html>

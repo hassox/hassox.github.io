@@ -1,6 +1,6 @@
 ---
   title: Adding realm support for Authorization headers
-  date: 2015-09-30
+  date: 2015-08-30
   categories:
     - elixir
     - guardian

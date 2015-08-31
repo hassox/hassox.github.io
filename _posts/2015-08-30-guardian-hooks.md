@@ -1,6 +1,6 @@
 ---
   title: Guardian Hooks
-  date: 2015-09-30
+  date: 2015-08-30
   categories:
     - elixir
     - guardian
