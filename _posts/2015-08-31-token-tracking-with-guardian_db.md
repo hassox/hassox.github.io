@@ -42,3 +42,5 @@ config :guardian, Guardian,
 config :guardian_db, GuardianDb, repo: MyApp.Repo
 
 {% endhighlight %}
+
+You'll need Guardian 0.6.1 or greater to have the right hooks available.
