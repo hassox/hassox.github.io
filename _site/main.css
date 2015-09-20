@@ -106,7 +106,7 @@ article:nth-of-type(even) {
     color: #bbbbbb; }
   article:nth-of-type(even) div a {
     font-weight: inherit;
-    color: #5d7bff; }
+    color: #5e7bff; }
     article:nth-of-type(even) div a:hover {
       color: gray; }
   article:nth-of-type(even) footer a {
@@ -130,7 +130,7 @@ article:nth-of-type(odd) {
     color: #666666; }
   article:nth-of-type(odd) div a {
     font-weight: inherit;
-    color: #2a51ff; }
+    color: #2b51ff; }
     article:nth-of-type(odd) div a:hover {
       color: gray; }
   article:nth-of-type(odd) footer a {

@@ -298,7 +298,6 @@ and the LoadResource one will load any resource found there.</p>
   <span class="kn">alias</span> <span class="nc">PhoenixGuardian.SessionController</span>
 
   <span class="n">plug</span> <span class="nc">Guardian.Plug.EnsureAuthenticated</span><span class="p">,</span> <span class="ss">on_failure</span><span class="p">:</span> <span class="p">{</span> <span class="nc">SessionController</span><span class="p">,</span> <span class="ss">:unauthenticated_api</span> <span class="p">}</span>
-  <span class="n">plug</span> <span class="ss">:action</span>
 
   <span class="c1"># …</span>
   <span class="kd">def</span> <span class="n">index</span><span class="p">(</span><span class="n">conn</span><span class="p">,</span> <span class="n">_params</span><span class="p">)</span> <span class="k">do</span>

@@ -57,7 +57,6 @@ defmodule PhoenixGuardian.Api.V1.UserController do
   alias PhoenixGuardian.SessionController
 
   plug Guardian.Plug.EnsureAuthenticated, on_failure: { SessionController, :unauthenticated_api }
-  plug :action
 
   # …
   def index(conn, _params) do
